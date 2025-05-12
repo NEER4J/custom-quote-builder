@@ -22,7 +22,10 @@ import {
   Trash2Icon,
   MoveUpIcon,
   MoveDownIcon,
-  Settings2Icon
+  Settings2Icon,
+  TypeIcon,
+  ListIcon,
+  TextIcon
 } from "lucide-react";
 import QuestionEditor from "./QuestionEditor";
 import FormSettingsEditor from "./FormSettingsEditor";
@@ -37,8 +40,7 @@ export type Option = {
 
 export type Condition = {
   questionId: string;
-  operator: "equals" | "not_equals";
-  value: string;
+  values: string[]; // Array of option values that would make this condition true
 };
 
 export type Question = {
@@ -48,6 +50,8 @@ export type Question = {
   options?: Option[];
   required: boolean;
   conditions?: Condition[];
+  // Logic to combine multiple conditions for this question
+  conditionLogic?: "AND" | "OR"; 
 };
 
 export type FormSettings = {
@@ -150,28 +154,30 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Form Details</CardTitle>
-          <CardDescription>Basic information about your form</CardDescription>
+    <div className="flex flex-col gap-8">
+      <Card className="border border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl tracking-tight">Form Details</CardTitle>
+          <CardDescription className="text-zinc-500 dark:text-zinc-400">Define the basic information for your quote form</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
+          <div className="grid gap-6">
             <div className="grid gap-2">
-              <Label htmlFor="title">Form Title</Label>
+              <Label htmlFor="title" className="text-sm font-medium">Form Title</Label>
               <Input 
                 id="title" 
                 value={formState.title}
                 onChange={e => setFormState(prev => ({ ...prev, title: e.target.value }))}
+                className="border-zinc-300 dark:border-zinc-700 focus-visible:ring-black"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description">Form Description</Label>
+              <Label htmlFor="description" className="text-sm font-medium">Form Description</Label>
               <Input 
                 id="description" 
                 value={formState.description}
                 onChange={e => setFormState(prev => ({ ...prev, description: e.target.value }))}
+                className="border-zinc-300 dark:border-zinc-700 focus-visible:ring-black"
               />
             </div>
           </div>
@@ -179,54 +185,63 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
       </Card>
 
       <Tabs defaultValue="questions" className="w-full">
-        <TabsList className="mb-4">
+        <TabsList className="w-full bg-zinc-100 dark:bg-zinc-900 p-1 rounded-lg mb-6">
           <TabsTrigger 
             value="questions"
             onClick={() => setActiveTab("questions")}
+            className="flex-1 data-[state=active]:bg-white data-[state=active]:text-black dark:data-[state=active]:bg-black dark:data-[state=active]:text-white rounded-md"
           >
+            <ListIcon className="w-4 h-4 mr-2" />
             Questions
           </TabsTrigger>
           <TabsTrigger 
             value="settings"
             onClick={() => setActiveTab("settings")}
+            className="flex-1 data-[state=active]:bg-white data-[state=active]:text-black dark:data-[state=active]:bg-black dark:data-[state=active]:text-white rounded-md"
           >
             <Settings2Icon className="w-4 h-4 mr-2" />
             Form Settings
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="questions" className="mt-4">
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-wrap gap-2">
+        <TabsContent value="questions" className="mt-6 animate-fade-in">
+          <div className="flex flex-col gap-8">
+            <div className="grid grid-cols-3 gap-4">
               <Button 
                 variant="outline" 
                 onClick={() => addQuestion("multiple_choice")}
+                className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-6 h-auto flex-col gap-2"
               >
-                <PlusIcon className="w-4 h-4 mr-2" />
-                Multiple Choice
+                <TypeIcon className="w-5 h-5 mb-1" />
+                <span>Multiple Choice</span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Choose multiple options</span>
               </Button>
               <Button 
                 variant="outline" 
                 onClick={() => addQuestion("single_choice")}
+                className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-6 h-auto flex-col gap-2"
               >
-                <PlusIcon className="w-4 h-4 mr-2" />
-                Single Choice
+                <ListIcon className="w-5 h-5 mb-1" />
+                <span>Single Choice</span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Choose one option</span>
               </Button>
               <Button 
                 variant="outline" 
                 onClick={() => addQuestion("text_input")}
+                className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-6 h-auto flex-col gap-2"
               >
-                <PlusIcon className="w-4 h-4 mr-2" />
-                Text Input
+                <TextIcon className="w-5 h-5 mb-1" />
+                <span>Text Input</span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Free-form text answers</span>
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-1">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Questions</CardTitle>
-                    <CardDescription>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <Card className="border border-zinc-200 dark:border-zinc-800 shadow-sm h-full">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg tracking-tight">Questions</CardTitle>
+                    <CardDescription className="text-zinc-500 dark:text-zinc-400">
                       {formState.questions.length === 0 
                         ? "Add your first question to get started" 
                         : "Select a question to edit"}
@@ -234,57 +249,66 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
                   </CardHeader>
                   <CardContent>
                     {formState.questions.length === 0 ? (
-                      <div className="flex justify-center items-center h-32 border-2 border-dashed rounded-md border-gray-300">
-                        <p className="text-sm text-gray-500">No questions yet</p>
+                      <div className="flex justify-center items-center py-10 border-2 border-dashed rounded-md border-zinc-300 dark:border-zinc-700">
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">No questions yet</p>
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {formState.questions.map((question, index) => (
                           <div 
                             key={question.id}
-                            className={`p-3 border rounded-md flex justify-between items-center cursor-pointer ${selectedQuestionIndex === index ? 'bg-accent' : ''}`}
+                            className={`p-3 border rounded-md flex justify-between items-center cursor-pointer transition-colors
+                             ${selectedQuestionIndex === index 
+                               ? 'bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700' 
+                               : 'bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900'}`}
                             onClick={() => setSelectedQuestionIndex(index)}
                           >
                             <div>
-                              <p className="font-medium truncate max-w-[150px]">
+                              <p className="font-medium text-sm truncate max-w-[150px]">
                                 {question.text}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                 {question.type.replace('_', ' ')}
                               </p>
                             </div>
-                            <div className="flex space-x-1">
+                            <div className="flex items-center space-x-1">
                               <Button 
+                                variant="ghost" 
                                 size="icon" 
-                                variant="ghost"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   moveQuestion(index, "up");
                                 }}
+                                className="h-7 w-7 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
                                 disabled={index === 0}
                               >
-                                <MoveUpIcon className="w-4 h-4" />
+                                <MoveUpIcon className="h-4 w-4" />
+                                <span className="sr-only">Move up</span>
                               </Button>
                               <Button 
+                                variant="ghost" 
                                 size="icon" 
-                                variant="ghost"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   moveQuestion(index, "down");
                                 }}
+                                className="h-7 w-7 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
                                 disabled={index === formState.questions.length - 1}
                               >
-                                <MoveDownIcon className="w-4 h-4" />
+                                <MoveDownIcon className="h-4 w-4" />
+                                <span className="sr-only">Move down</span>
                               </Button>
                               <Button 
+                                variant="ghost" 
                                 size="icon" 
-                                variant="ghost"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   removeQuestion(index);
                                 }}
+                                className="h-7 w-7 rounded-full text-zinc-500 hover:text-red-500"
                               >
-                                <Trash2Icon className="w-4 h-4" />
+                                <Trash2Icon className="h-4 w-4" />
+                                <span className="sr-only">Delete</span>
                               </Button>
                             </div>
                           </div>
@@ -295,34 +319,57 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
                 </Card>
               </div>
 
-              <div className="md:col-span-2">
-                {selectedQuestionIndex !== null && formState.questions[selectedQuestionIndex] ? (
+              <div className="lg:col-span-2">
+                <Card className="border border-zinc-200 dark:border-zinc-800 shadow-sm h-full">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg tracking-tight">
+                      {selectedQuestionIndex !== null ? "Edit Question" : "Question Editor"}
+                    </CardTitle>
+                    <CardDescription className="text-zinc-500 dark:text-zinc-400">
+                      {selectedQuestionIndex !== null 
+                        ? "Customize your question" 
+                        : "Select a question from the list to edit its details"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedQuestionIndex !== null ? (
                   <QuestionEditor 
                     question={formState.questions[selectedQuestionIndex]} 
                     questions={formState.questions}
-                    onChange={(updatedQuestion) => updateQuestion(selectedQuestionIndex, updatedQuestion)}
+                        onChange={(updatedQuestion) => 
+                          updateQuestion(selectedQuestionIndex, updatedQuestion)
+                        } 
                   />
                 ) : (
-                  <Card>
-                    <CardContent className="flex justify-center items-center h-64">
-                      <p className="text-muted-foreground">
-                        {formState.questions.length === 0 
-                          ? "Add a question to get started" 
-                          : "Select a question to edit its properties"}
-                      </p>
+                      <div className="flex flex-col justify-center items-center py-12 border-2 border-dashed rounded-md border-zinc-300 dark:border-zinc-700">
+                        <p className="text-zinc-500 dark:text-zinc-400 mb-4">No question selected</p>
+                        <p className="text-sm text-zinc-400 dark:text-zinc-500 max-w-md text-center">
+                          Select a question from the list or create a new one to customize it in this editor
+                        </p>
+                      </div>
+                    )}
                     </CardContent>
                   </Card>
-                )}
               </div>
             </div>
           </div>
         </TabsContent>
         
-        <TabsContent value="settings" className="mt-4">
+        <TabsContent value="settings" className="mt-6 animate-fade-in">
+          <Card className="border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg tracking-tight">Form Settings</CardTitle>
+              <CardDescription className="text-zinc-500 dark:text-zinc-400">
+                Customize the appearance and behavior of your form
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
           <FormSettingsEditor 
             settings={formState.settings}
             onChange={updateFormSettings}
           />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

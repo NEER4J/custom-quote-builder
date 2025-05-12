@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FormState, Question } from "./FormDesigner";
+import { FormState, Question, Option, Condition } from "./FormDesigner";
 import {
   Card,
   CardContent,
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { isUri } from 'valid-url';
 
 type FormPreviewProps = {
   formState: FormState;
@@ -47,22 +48,54 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
     if (!question.conditions || question.conditions.length === 0) {
       return true;
     }
+    
+    // Determine overall logic (AND/OR) between conditions
+    const logic = question.conditionLogic || "AND"; // Default to AND if not specified
+    
+    const debugConditionEvaluation = (condition: Condition, result: boolean) => {
+      const sourceQuestion = formState.questions.find(q => q.id === condition.questionId);
+      console.log(`Condition for ${question.text}:`, {
+        sourceQuestion: sourceQuestion?.text,
+        answer: answers[condition.questionId],
+        values: condition.values,
+        result
+      });
+    };
 
-    return question.conditions.every(condition => {
+    const checkCondition = (condition: Condition) => {
+      const sourceQuestion = formState.questions.find(q => q.id === condition.questionId);
       const answer = answers[condition.questionId];
       
-      if (answer === undefined) {
-        return false;
+      if (answer === undefined || !sourceQuestion) {
+        debugConditionEvaluation(condition, false);
+        return false; // Cannot evaluate if answer or source question is missing
       }
 
-      if (Array.isArray(answer)) {
-        const hasValue = answer.includes(condition.value);
-        return condition.operator === "equals" ? hasValue : !hasValue;
-      } else {
-        const matches = answer === condition.value;
-        return condition.operator === "equals" ? matches : !matches;
+      // Handle condition based on the source question type
+      if (sourceQuestion.type === "multiple_choice" || sourceQuestion.type === "single_choice") {
+        const answerArray = Array.isArray(answer) ? answer : [answer]; // Ensure answer is an array
+        
+        // Always use "any" logic - show if any of the condition values match any of the selected answers
+        const result = condition.values.some(val => answerArray.includes(val));
+        debugConditionEvaluation(condition, result);
+        return result;
+      } else if (sourceQuestion.type === "text_input") {
+        // Simple equality check for text input (assuming condition.values[0] holds the target text)
+        const result = condition.values[0] === answer;
+        debugConditionEvaluation(condition, result);
+        return result;
       }
-    });
+      
+      debugConditionEvaluation(condition, false);
+      return false; // Default to false if type is unknown
+    };
+
+    const results = question.conditions.map(checkCondition);
+    const finalResult = logic === "AND" ? results.every(Boolean) : results.some(Boolean);
+    
+    console.log(`Question "${question.text}" visibility with ${logic} logic:`, results, "Final:", finalResult);
+    
+    return finalResult;
   };
 
   // Navigate to the next visible question
@@ -151,6 +184,39 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
     calculateProgress(firstVisibleIndex);
   };
 
+  // Check if icon is an image URL - moved from QuestionEditor
+  const isImageUrl = (url?: string): boolean => {
+    if (!url) return false;
+    // Simple check for common image extensions or if it starts with http/https
+    // Or use a more robust check like the valid-url library
+    return isUri(url) ? url.match(/\.(jpeg|jpg|gif|png|svg|webp)$/i) != null : false;
+  };
+
+  const renderOptionContent = (option: Option) => {
+    if (isImageUrl(option.icon)) {
+      return (
+        <div className="flex items-center gap-3">
+          <img 
+            src={option.icon} 
+            alt={option.text} 
+            className="w-10 h-10 object-contain rounded mr-2" 
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} // Hide if image fails
+          />
+          <span>{option.text}</span>
+        </div>
+      );
+    } else if (option.icon) { // Render icon if it's not a URL (e.g., emoji or name)
+      return (
+        <div className="flex items-center gap-3">
+          <span className="text-xl mr-2">{option.icon}</span>
+          <span>{option.text}</span>
+        </div>
+      );
+    } else { // Just render text
+      return <span>{option.text}</span>;
+    }
+  };
+
   // Render current question based on type
   const renderQuestion = () => {
     if (currentQuestionIndex === null || !formState.questions[currentQuestionIndex]) {
@@ -165,15 +231,15 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
       case "multiple_choice":
         return (
           <div className="space-y-4">
-            <h3 className="text-xl font-medium">{question.text}</h3>
+            <h3 className="text-xl font-medium">{question.text} {question.required && <span className="text-red-500">*</span>}</h3>
             <div className="grid gap-3">
               {question.options?.map(option => (
                 <div
                   key={option.id}
-                  className={`p-4 border rounded-md cursor-pointer hover:bg-accent/50 transition-colors ${
+                  className={`p-4 border rounded-md cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center ${
                     Array.isArray(currentAnswer) && currentAnswer.includes(option.id)
-                      ? "bg-accent border-primary"
-                      : ""
+                      ? "bg-zinc-100 dark:bg-zinc-800 border-black dark:border-white ring-1 ring-black dark:ring-white"
+                      : "bg-white dark:bg-black border-zinc-200 dark:border-zinc-700"
                   }`}
                   onClick={() => {
                     const currentAnswers = Array.isArray(currentAnswer) ? [...currentAnswer] : [];
@@ -188,12 +254,7 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
                     handleQuestionResponse(questionId, currentAnswers);
                   }}
                 >
-                  <div className="flex items-center gap-3">
-                    {option.icon && (
-                      <div className="text-primary text-xl">{option.icon}</div>
-                    )}
-                    <span>{option.text}</span>
-                  </div>
+                  {renderOptionContent(option)}
                 </div>
               ))}
             </div>
@@ -203,22 +264,19 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
       case "single_choice":
         return (
           <div className="space-y-4">
-            <h3 className="text-xl font-medium">{question.text}</h3>
+            <h3 className="text-xl font-medium">{question.text} {question.required && <span className="text-red-500">*</span>}</h3>
             <div className="grid gap-3">
               {question.options?.map(option => (
                 <div
                   key={option.id}
-                  className={`p-4 border rounded-md cursor-pointer hover:bg-accent/50 transition-colors ${
-                    currentAnswer === option.id ? "bg-accent border-primary" : ""
+                  className={`p-4 border rounded-md cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center ${
+                    currentAnswer === option.id 
+                      ? "bg-zinc-100 dark:bg-zinc-800 border-black dark:border-white ring-1 ring-black dark:ring-white"
+                      : "bg-white dark:bg-black border-zinc-200 dark:border-zinc-700"
                   }`}
                   onClick={() => handleQuestionResponse(questionId, option.id)}
                 >
-                  <div className="flex items-center gap-3">
-                    {option.icon && (
-                      <div className="text-primary text-xl">{option.icon}</div>
-                    )}
-                    <span>{option.text}</span>
-                  </div>
+                   {renderOptionContent(option)}
                 </div>
               ))}
             </div>

@@ -299,11 +299,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const state = {
     currentQuestionIndex: 0,
     answers: {},
-    questions: ${JSON.stringify(formState.questions.map(q => ({ 
-      id: q.id, 
-      type: q.type, 
-      required: q.required 
-    })))},
+    questions: ${JSON.stringify(formState.questions)},
     conditions: ${conditionsJSON},
     submitUrl: "${formState.settings.submitUrl}",
     zapierWebhookUrl: "${formState.settings.zapierWebhookUrl}"
@@ -533,12 +529,42 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Submit data to Zapier if webhook URL provided
     if (state.zapierWebhookUrl) {
+      // Transform answers to include question text and answer text instead of just IDs
+      const transformedAnswers = {};
+      
+      Object.keys(state.answers).forEach(questionId => {
+        const question = state.questions.find(q => q.id === questionId);
+        if (!question) return;
+        
+        const questionKey = question.text;
+        
+        if (question.type === 'text_input') {
+          // For text inputs, just use the value directly
+          transformedAnswers[questionKey] = state.answers[questionId];
+        } else if (question.type === 'multiple_choice') {
+          // For multiple choice, map the array of IDs to array of text values
+          const answerIds = state.answers[questionId];
+          if (Array.isArray(answerIds)) {
+            const answerTexts = answerIds.map(id => {
+              const option = question.options?.find(opt => opt.id === id);
+              return option ? option.text : id;
+            });
+            transformedAnswers[questionKey] = answerTexts.join(', ');
+          }
+        } else if (question.type === 'single_choice') {
+          // For single choice, map the ID to the text value
+          const answerId = state.answers[questionId];
+          const option = question.options?.find(opt => opt.id === answerId);
+          transformedAnswers[questionKey] = option ? option.text : answerId;
+        }
+      });
+      
       fetch(state.zapierWebhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(state.answers),
+        body: JSON.stringify(transformedAnswers),
         mode: 'no-cors'
       }).catch(err => console.error('Error submitting form:', err));
     }

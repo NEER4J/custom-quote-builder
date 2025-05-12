@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ClockIcon, PencilIcon } from "lucide-react";
+import { ClockIcon, PencilIcon, PlusIcon } from "lucide-react";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -22,27 +22,45 @@ export default async function DashboardPage() {
     .order("updated_at", { ascending: false });
 
   return (
-    <div className="max-w-3xl mx-auto py-8">
+    <div className="container py-10 max-w-4xl mx-auto animate-slide-up">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Your Forms</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Your Forms</h1>
         <Link href="/protected/form-builder">
-          <Button>+ New Form</Button>
+          <Button className="gap-1">
+            <PlusIcon size={16} />
+            New Form
+          </Button>
         </Link>
       </div>
-      <div className="bg-white rounded shadow p-6">
-        {forms && forms.length > 0 ? (
-          <ul className="divide-y">
-            {forms.map((form: any) => (
-              <li key={form.id} className="py-4 flex justify-between items-center">
+      
+      {forms && forms.length > 0 ? (
+        <div className="grid gap-4">
+          {forms.map((form: any) => (
+            <div 
+              key={form.id} 
+              className="border rounded-lg p-5 hover-scale card-shadow-lg bg-card"
+            >
+              <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="font-semibold text-lg">
-                    <Link href={`/protected/form-builder?id=${form.id}`}>{form.title}</Link>
+                  <h2 className="font-semibold text-xl">
+                    <Link 
+                      href={`/protected/form-builder?id=${form.id}`}
+                      className="hover:underline underline-offset-4"
+                    >
+                      {form.title}
+                    </Link>
                   </h2>
-                  <p className="text-sm text-muted-foreground">{form.description}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Last updated: {new Date(form.updated_at).toLocaleString()}</p>
+                  <p className="text-muted-foreground mt-1">{form.description}</p>
+                  <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                    <span>Last updated: {new Date(form.updated_at).toLocaleString()}</span>
+                    {form.is_published && (
+                      <span className="inline-flex items-center text-xs font-medium ml-2 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
+                        Published
+                      </span>
+                    )}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {form.is_published && <span className="text-green-600 font-medium">Published</span>}
+                <div className="flex gap-2">
                   <Link href={`/protected/form-versions/${form.id}`}>
                     <Button variant="outline" size="sm" className="flex items-center gap-1">
                       <ClockIcon size={14} />
@@ -56,13 +74,26 @@ export default async function DashboardPage() {
                     </Button>
                   </Link>
                 </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="text-center text-muted-foreground">No forms yet. Click "+ New Form" to create your first form.</div>
-        )}
-      </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="border rounded-lg p-10 text-center bg-card card-shadow">
+          <div className="max-w-md mx-auto">
+            <h3 className="text-xl font-semibold mb-2">No forms yet</h3>
+            <p className="text-muted-foreground mb-6">
+              Create your first form to get started with Quote Builder.
+            </p>
+            <Link href="/protected/form-builder">
+              <Button className="gap-1">
+                <PlusIcon size={16} />
+                Create Your First Form
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
