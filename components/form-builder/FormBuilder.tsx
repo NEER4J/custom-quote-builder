@@ -35,20 +35,58 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
   useEffect(() => {
     if (formId) {
       (async () => {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from("forms")
-          .select("id, title, description, form_versions(form_data, version_number)")
-          .eq("id", formId)
-          .single();
-        if (data && data.form_versions && data.form_versions.length > 0) {
-          // Use the latest version
-          const latest = data.form_versions.reduce((a, b) => a.version_number > b.version_number ? a : b);
-          setFormState({
-            title: data.title,
-            description: data.description,
-            ...latest.form_data,
-          });
+        try {
+          const supabase = createClient();
+          console.log("Loading form with ID:", formId);
+          
+          // First, get the form basic details
+          const { data: formData, error: formError } = await supabase
+            .from("forms")
+            .select("id, title, description")
+            .eq("id", formId)
+            .single();
+            
+          if (formError) {
+            console.error("Error loading form:", formError);
+            return;
+          }
+          
+          // Then, get the latest version separately
+          const { data: versionData, error: versionError } = await supabase
+            .from("form_versions")
+            .select("id, form_data, version_number")
+            .eq("form_id", formId)
+            .order("version_number", { ascending: false })
+            .limit(1)
+            .single();
+            
+          if (versionError) {
+            console.error("Error loading form version:", versionError);
+            return;
+          }
+          
+          console.log("Loaded form data:", formData);
+          console.log("Loaded version data:", versionData);
+          
+          if (formData && versionData && versionData.form_data) {
+            // Create a new state with both form metadata and form content
+            const newFormState = {
+              title: formData.title,
+              description: formData.description,
+              questions: versionData.form_data.questions || [],
+              settings: versionData.form_data.settings || {
+                backgroundColor: "#ffffff",
+                buttonColor: "#3b82f6",
+                submitUrl: "",
+                zapierWebhookUrl: "",
+              },
+            };
+            
+            console.log("Setting form state to:", newFormState);
+            setFormState(newFormState);
+          }
+        } catch (error) {
+          console.error("Failed to load form:", error);
         }
       })();
     }
