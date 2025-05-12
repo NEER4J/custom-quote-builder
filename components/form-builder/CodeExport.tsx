@@ -538,7 +538,8 @@ document.addEventListener('DOMContentLoaded', function() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(state.answers)
+        body: JSON.stringify(state.answers),
+        mode: 'no-cors'
       }).catch(err => console.error('Error submitting form:', err));
     }
     
