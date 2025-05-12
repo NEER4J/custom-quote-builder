@@ -755,19 +755,19 @@ document.addEventListener('DOMContentLoaded', function() {
               <div className="grid gap-4">
                 <div>
                   <h3 className="font-medium mb-2">HTML (quote-form.html)</h3>
-                  <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto max-h-60">
+                  <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto max-h-60 text-wrap">
                     <code>{generateHTML()}</code>
                   </pre>
                 </div>
                 <div>
                   <h3 className="font-medium mb-2">CSS (form-styles.css)</h3>
-                  <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto max-h-60">
+                  <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto max-h-60 text-wrap">
                     <code>{generateCSS()}</code>
                   </pre>
                 </div>
                 <div>
                   <h3 className="font-medium mb-2">JavaScript (form-script.js)</h3>
-                  <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto max-h-60">
+                  <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto max-h-60 text-wrap">
                     <code>{generateJS()}</code>
                   </pre>
                 </div>

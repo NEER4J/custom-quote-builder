@@ -10,16 +10,17 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PaintbrushIcon, GlobeIcon } from "lucide-react";
+import { Paintbrush, Globe, ExternalLink, Wand2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 type FormSettingsEditorProps = {
   settings: FormSettings;
-  onChange: (settings: FormSettings) => void;
+  onSettingsChange: (settings: FormSettings) => void;
 };
 
-const FormSettingsEditor = ({ settings, onChange }: FormSettingsEditorProps) => {
+const FormSettingsEditor = ({ settings, onSettingsChange }: FormSettingsEditorProps) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof FormSettings) => {
-    onChange({
+    onSettingsChange({
       ...settings,
       [field]: e.target.value
     });
@@ -27,31 +28,36 @@ const FormSettingsEditor = ({ settings, onChange }: FormSettingsEditorProps) => 
 
   return (
     <div className="space-y-8 animate-fade-in">
-        <div className="grid gap-6">
-        <div className="grid gap-5">
-          <div className="flex items-center gap-2">
-            <PaintbrushIcon className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
-            <h3 className="text-lg font-medium">Appearance</h3>
+      <div className="grid gap-6">
+        <div className="space-y-5">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Paintbrush className="h-4 w-4" />
+            <h3 className="text-sm font-medium uppercase tracking-wide">Appearance</h3>
           </div>
           
-          <div className="grid gap-3 p-5 bg-zinc-50 dark:bg-zinc-900 rounded-md border border-zinc-200 dark:border-zinc-800">
+          <Separator />
+          
+          <div className="grid gap-5">
             <div className="grid gap-2">
               <Label htmlFor="backgroundColor" className="text-sm font-medium">Background Color</Label>
               <div className="flex gap-3">
+                <div className="relative">
+                  <Input
+                    id="backgroundColor"
+                    type="color"
+                    value={settings.backgroundColor}
+                    onChange={(e) => handleChange(e, "backgroundColor")}
+                    className="w-10 h-10 p-1 overflow-hidden rounded-full cursor-pointer"
+                  />
+                  <div className="absolute inset-0 rounded-full pointer-events-none border" />
+                </div>
                 <Input
-                  id="backgroundColor"
-                  type="color"
                   value={settings.backgroundColor}
                   onChange={(e) => handleChange(e, "backgroundColor")}
-                  className="w-12 h-12 p-1 border-zinc-300 dark:border-zinc-700 rounded-md"
-                />
-                <Input
-                  value={settings.backgroundColor}
-                  onChange={(e) => handleChange(e, "backgroundColor")}
-                  className="border-zinc-300 dark:border-zinc-700 focus-visible:ring-black"
+                  className="flex-1 bg-background/50"
                 />
               </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Choose a background color for your form
               </p>
             </div>
@@ -59,33 +65,38 @@ const FormSettingsEditor = ({ settings, onChange }: FormSettingsEditorProps) => 
             <div className="grid gap-2">
               <Label htmlFor="buttonColor" className="text-sm font-medium">Button Color</Label>
               <div className="flex gap-3">
+                <div className="relative">
+                  <Input
+                    id="buttonColor"
+                    type="color"
+                    value={settings.buttonColor}
+                    onChange={(e) => handleChange(e, "buttonColor")}
+                    className="w-10 h-10 p-1 overflow-hidden rounded-full cursor-pointer"
+                  />
+                  <div className="absolute inset-0 rounded-full pointer-events-none border" />
+                </div>
                 <Input
-                  id="buttonColor"
-                  type="color"
                   value={settings.buttonColor}
                   onChange={(e) => handleChange(e, "buttonColor")}
-                  className="w-12 h-12 p-1 border-zinc-300 dark:border-zinc-700 rounded-md"
-                />
-                <Input
-                  value={settings.buttonColor}
-                  onChange={(e) => handleChange(e, "buttonColor")}
-                  className="border-zinc-300 dark:border-zinc-700 focus-visible:ring-black"
+                  className="flex-1 bg-background/50"
                 />
               </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Choose a color for the form submit button
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid gap-5">
-          <div className="flex items-center gap-2">
-            <GlobeIcon className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
-            <h3 className="text-lg font-medium">Integration Settings</h3>
+        <div className="space-y-5">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <ExternalLink className="h-4 w-4" />
+            <h3 className="text-sm font-medium uppercase tracking-wide">Integration Settings</h3>
           </div>
           
-          <div className="grid gap-5 p-5 bg-zinc-50 dark:bg-zinc-900 rounded-md border border-zinc-200 dark:border-zinc-800">
+          <Separator />
+          
+          <div className="grid gap-5">
             <div className="grid gap-2">
               <Label htmlFor="submitUrl" className="text-sm font-medium">Redirect URL</Label>
               <Input
@@ -93,9 +104,9 @@ const FormSettingsEditor = ({ settings, onChange }: FormSettingsEditorProps) => 
                 placeholder="https://example.com/thank-you"
                 value={settings.submitUrl}
                 onChange={(e) => handleChange(e, "submitUrl")}
-                className="border-zinc-300 dark:border-zinc-700 focus-visible:ring-black"
+                className="bg-background/50"
               />
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs text-muted-foreground">
                 Where to redirect users after form submission
               </p>
             </div>
@@ -107,12 +118,27 @@ const FormSettingsEditor = ({ settings, onChange }: FormSettingsEditorProps) => 
                 placeholder="https://hooks.zapier.com/hooks/catch/..."
                 value={settings.zapierWebhookUrl}
                 onChange={(e) => handleChange(e, "zapierWebhookUrl")}
-                className="border-zinc-300 dark:border-zinc-700 focus-visible:ring-black"
+                className="bg-background/50"
               />
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs text-muted-foreground">
                 Connect to Zapier to process form submissions
               </p>
             </div>
+          </div>
+        </div>
+        
+        <div className="space-y-5">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Wand2 className="h-4 w-4" />
+            <h3 className="text-sm font-medium uppercase tracking-wide">Advanced Settings</h3>
+          </div>
+          
+          <Separator />
+          
+          <div className="space-y-2 rounded-lg bg-accent/10 border border-accent/20 p-4 text-sm">
+            <p className="text-muted-foreground">
+              More advanced settings like custom CSS, custom JavaScript, and email notifications will be available in the full version.
+            </p>
           </div>
         </div>
       </div>

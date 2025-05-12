@@ -22,7 +22,7 @@ export default async function DashboardPage() {
     .order("updated_at", { ascending: false });
 
   return (
-    <div className="container py-10 max-w-4xl mx-auto animate-slide-up">
+    <div className="container py-10 mx-auto animate-slide-up">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Your Forms</h1>
         <Link href="/protected/form-builder">

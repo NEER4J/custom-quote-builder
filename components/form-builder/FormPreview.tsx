@@ -7,11 +7,20 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription
+  CardDescription,
+  CardFooter
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { isUri } from 'valid-url';
+import { InfoIcon, ArrowRight, ArrowLeft, CheckCircle2, ChevronLeft, CheckIcon, RefreshCw } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 type FormPreviewProps = {
   formState: FormState;
@@ -22,6 +31,21 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [progress, setProgress] = useState(0);
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
 
   // Set initial question index when form changes
   useEffect(() => {
@@ -168,205 +192,268 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
   };
 
   // Handle user input for a question
-  const handleQuestionResponse = (questionId: string, value: string | string[]) => {
+  const handleQuestionResponse = (questionId: string, value: string | string[], autoAdvance = false) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: value
     }));
+
+    // Auto advance to next question for single-choice if autoAdvance is true
+    if (autoAdvance) {
+      goToNextQuestion();
+    }
   };
 
-  // Reset the form
+  // Reset the form to start over
   const resetForm = () => {
     setAnswers({});
     setFormSubmitted(false);
-    const firstVisibleIndex = findFirstVisibleQuestionIndex();
-    setCurrentQuestionIndex(firstVisibleIndex);
-    calculateProgress(firstVisibleIndex);
+    const firstIndex = findFirstVisibleQuestionIndex();
+    setCurrentQuestionIndex(firstIndex);
+    calculateProgress(firstIndex);
   };
 
-  // Check if icon is an image URL - moved from QuestionEditor
+  // Check if a URL is an image URL
   const isImageUrl = (url?: string): boolean => {
     if (!url) return false;
-    // Simple check for common image extensions or if it starts with http/https
-    // Or use a more robust check like the valid-url library
-    return isUri(url) ? url.match(/\.(jpeg|jpg|gif|png|svg|webp)$/i) != null : false;
+    return url.match(/\.(jpeg|jpg|gif|png|webp)$/) !== null || isUri(url) !== undefined;
   };
 
+  // Render an option's content
   const renderOptionContent = (option: Option) => {
-    if (isImageUrl(option.icon)) {
-      return (
-        <div className="flex items-center gap-3">
-          <img 
-            src={option.icon} 
-            alt={option.text} 
-            className="w-10 h-10 object-contain rounded mr-2" 
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} // Hide if image fails
-          />
-          <span>{option.text}</span>
-        </div>
-      );
-    } else if (option.icon) { // Render icon if it's not a URL (e.g., emoji or name)
-      return (
-        <div className="flex items-center gap-3">
-          <span className="text-xl mr-2">{option.icon}</span>
-          <span>{option.text}</span>
-        </div>
-      );
-    } else { // Just render text
-      return <span>{option.text}</span>;
-    }
-  };
-
-  // Render current question based on type
-  const renderQuestion = () => {
-    if (currentQuestionIndex === null || !formState.questions[currentQuestionIndex]) {
-      return <div className="text-center py-8">No questions available</div>;
-    }
-
-    const question = formState.questions[currentQuestionIndex];
-    const questionId = question.id;
-    const currentAnswer = answers[questionId] || "";
-
-    switch (question.type) {
-      case "multiple_choice":
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-medium">{question.text} {question.required && <span className="text-red-500">*</span>}</h3>
-            <div className="grid gap-3">
-              {question.options?.map(option => (
-                <div
-                  key={option.id}
-                  className={`p-4 border rounded-md cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center ${
-                    Array.isArray(currentAnswer) && currentAnswer.includes(option.id)
-                      ? "bg-zinc-100 dark:bg-zinc-800 border-black dark:border-white ring-1 ring-black dark:ring-white"
-                      : "bg-white dark:bg-black border-zinc-200 dark:border-zinc-700"
-                  }`}
-                  onClick={() => {
-                    const currentAnswers = Array.isArray(currentAnswer) ? [...currentAnswer] : [];
-                    const optionIndex = currentAnswers.indexOf(option.id);
-                    
-                    if (optionIndex === -1) {
-                      currentAnswers.push(option.id);
-                    } else {
-                      currentAnswers.splice(optionIndex, 1);
-                    }
-                    
-                    handleQuestionResponse(questionId, currentAnswers);
-                  }}
-                >
-                  {renderOptionContent(option)}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-        
-      case "single_choice":
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-medium">{question.text} {question.required && <span className="text-red-500">*</span>}</h3>
-            <div className="grid gap-3">
-              {question.options?.map(option => (
-                <div
-                  key={option.id}
-                  className={`p-4 border rounded-md cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center ${
-                    currentAnswer === option.id 
-                      ? "bg-zinc-100 dark:bg-zinc-800 border-black dark:border-white ring-1 ring-black dark:ring-white"
-                      : "bg-white dark:bg-black border-zinc-200 dark:border-zinc-700"
-                  }`}
-                  onClick={() => handleQuestionResponse(questionId, option.id)}
-                >
-                   {renderOptionContent(option)}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-        
-      case "text_input":
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-medium">{question.text}</h3>
-            <Input
-              value={currentAnswer as string}
-              onChange={(e) => handleQuestionResponse(questionId, e.target.value)}
-              placeholder="Your answer"
+    // Check if it has an icon URL
+    const hasIcon = option.icon && isImageUrl(option.icon);
+    
+    return (
+      <div className="flex flex-col items-center w-full h-full text-center">
+        {hasIcon && (
+          <div className="mb-3 w-full flex justify-center">
+            <img 
+              src={option.icon} 
+              alt={option.text} 
+              className="object-contain h-20 w-full"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/png?text=Error';
+              }}
             />
           </div>
-        );
-        
-      default:
-        return <div>Unknown question type</div>;
-    }
-  };
-
-  // Form submission success screen
-  const renderThankYouScreen = () => {
-    return (
-      <div className="text-center py-12 space-y-6">
-        <h2 className="text-2xl font-bold">Thank you for your responses!</h2>
-        <p className="text-muted-foreground">
-          Your form has been submitted successfully.
-        </p>
-        <Button onClick={resetForm}>Start Over</Button>
+        )}
+        <span className="text-center font-medium">{option.text}</span>
+        {option.description && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <InfoIcon className="h-4 w-4 text-muted-foreground mt-1 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="p-2 max-w-xs">
+                <p className="text-sm">{option.description}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
     );
   };
 
+  // Render the current question
+  const renderQuestion = () => {
+    if (currentQuestionIndex === null || !formState.questions[currentQuestionIndex]) {
+      return (
+        <div className="text-center p-8">
+          <p className="text-muted-foreground">No questions available.</p>
+        </div>
+      );
+    }
+
+    const currentQuestion = formState.questions[currentQuestionIndex];
+    const currentAnswer = answers[currentQuestion.id];
+    
+    return (
+      <div className="space-y-6 animate-fade-in">
+        {/* Question */}
+        <div className="space-y-2">
+          <h3 className="text-xl font-medium">
+            {currentQuestion.text}
+            {currentQuestion.required && <span className="text-destructive ml-1">*</span>}
+          </h3>
+          {currentQuestion.description && (
+            <p className="text-muted-foreground">{currentQuestion.description}</p>
+          )}
+        </div>
+        
+        {/* Possible answers */}
+        <div className="space-y-3">
+          {/* Render for single choice questions */}
+          {currentQuestion.type === "single_choice" && currentQuestion.options && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {currentQuestion.options.map((option) => (
+                <div
+                  key={option.id}
+                  className={cn(
+                    "relative rounded-lg border p-4 cursor-pointer transition-all hover:border-accent/60 flex flex-col items-center justify-between h-full",
+                    currentAnswer === option.id ? "bg-accent text-accent-foreground border-accent shadow-sm" : "bg-card"
+                  )}
+                  onClick={() => handleQuestionResponse(currentQuestion.id, option.id, true)}
+                >
+                  <div className={cn(
+                    "absolute top-2 right-2 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                    currentAnswer === option.id ? "border-accent-foreground" : "border-muted-foreground"
+                  )}>
+                    {currentAnswer === option.id && <div className="w-2.5 h-2.5 rounded-full bg-accent-foreground" />}
+                  </div>
+                  {renderOptionContent(option)}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Render for multiple choice questions */}
+          {currentQuestion.type === "multiple_choice" && currentQuestion.options && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {currentQuestion.options.map((option) => {
+                const isSelected = Array.isArray(currentAnswer) && currentAnswer.includes(option.id);
+                
+                return (
+                  <div
+                    key={option.id}
+                    className={cn(
+                      "relative rounded-lg border p-4 cursor-pointer transition-all hover:border-accent/60 flex flex-col items-center justify-between h-full",
+                      isSelected ? "bg-accent/20 border-accent shadow-sm" : "bg-card"
+                    )}
+                    onClick={() => {
+                      const currentAnswerArray = Array.isArray(currentAnswer) ? currentAnswer : [];
+                      const updatedAnswer = isSelected
+                        ? currentAnswerArray.filter(id => id !== option.id)
+                        : [...currentAnswerArray, option.id];
+                      
+                      handleQuestionResponse(currentQuestion.id, updatedAnswer);
+                    }}
+                  >
+                    <div className={cn(
+                      "absolute top-2 right-2 h-5 w-5 rounded-md border-2 flex items-center justify-center",
+                      isSelected ? "border-accent bg-accent/20" : "border-muted-foreground"
+                    )}>
+                      {isSelected && <CheckIcon className="h-3 w-3 text-accent" />}
+                    </div>
+                    {renderOptionContent(option)}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
+          {/* Render for text input questions */}
+          {currentQuestion.type === "text_input" && (
+            <div className="space-y-2">
+              <Input
+                type="text"
+                value={currentAnswer as string || ""}
+                onChange={(e) => handleQuestionResponse(currentQuestion.id, e.target.value)}
+                placeholder={currentQuestion.placeholder || "Type your answer here"}
+                className="w-full bg-background/50"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Render the thank you screen after form completion
+  const renderThankYouScreen = () => {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-8 animate-scale-up">
+        <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mb-6">
+          <CheckCircle2 className="h-10 w-10 text-accent" />
+        </div>
+        <h2 className="text-2xl font-semibold mb-2">Thank You!</h2>
+        <p className="text-muted-foreground mb-8 max-w-md">
+          Your response has been recorded. We'll get back to you shortly with your custom quote.
+        </p>
+        <Button variant="outline" onClick={resetForm} className="flex items-center gap-2">
+          <RefreshCw className="h-4 w-4" />
+          Start Over
+        </Button>
+      </div>
+    );
+  };
+
+  // Determine if we should show the next button
+  const shouldShowNextButton = () => {
+    if (currentQuestionIndex === null) return false;
+    const currentQuestion = formState.questions[currentQuestionIndex];
+    if (!currentQuestion) return false;
+    
+    // If required, only show when there's an answer
+    if (currentQuestion.required) {
+      const currentAnswer = answers[currentQuestion.id];
+      
+      if (currentQuestion.type === "single_choice") {
+        return currentAnswer !== undefined;
+      } else if (currentQuestion.type === "multiple_choice") {
+        return Array.isArray(currentAnswer) && currentAnswer.length > 0;
+      } else if (currentQuestion.type === "text_input") {
+        return currentAnswer !== undefined && String(currentAnswer).trim().length > 0;
+      }
+    }
+    
+    // Not required, so always show the next button
+    return true;
+  };
+
+  // If there are no questions, show a message
+  if (formState.questions.length === 0) {
+    return (
+      <Card className="rounded-lg overflow-hidden shadow-md">
+        <CardContent className="flex items-center justify-center p-8">
+          <p className="text-muted-foreground">Add questions to see the preview</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <div 
-      className="mx-auto max-w-3xl" 
-      style={{ backgroundColor: formState.settings.backgroundColor }}
-    >
+    <Card className="">
       {/* Progress bar */}
-      <div className="w-full h-2 bg-muted mb-6">
+      <div className="bg-background h-1 w-full">
         <div 
-          className="h-full transition-all duration-300 ease-in-out" 
-          style={{ 
-            width: `${progress}%`,
-            backgroundColor: formState.settings.buttonColor 
-          }}
+          className="h-full bg-accent transition-all duration-500 ease-out"
+          style={{ width: `${progress}%` }}
         ></div>
       </div>
       
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle>{formState.title}</CardTitle>
-          <CardDescription>{formState.description}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {formSubmitted ? (
-            renderThankYouScreen()
-          ) : (
-            <div className="space-y-8">
-              {renderQuestion()}
-              
-              <div className="flex justify-between pt-4">
-                <Button
-                  variant="outline"
-                  onClick={goToPreviousQuestion}
-                  disabled={currentQuestionIndex === 0 || currentQuestionIndex === null}
-                >
-                  Back
-                </Button>
-                
-                <Button
-                  onClick={goToNextQuestion}
-                  style={{ backgroundColor: formState.settings.buttonColor }}
-                  disabled={
-                    currentQuestionIndex === null ||
-                    (formState.questions[currentQuestionIndex]?.required &&
-                      !answers[formState.questions[currentQuestionIndex]?.id])
-                  }
-                >
-                  {currentQuestionIndex === formState.questions.length - 1 ? "Submit" : "Next"}
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      <CardHeader className="text-center px-6 pt-8 pb-0">
+        <CardTitle className="text-2xl font-bold mb-2">{formState.title}</CardTitle>
+        <CardDescription className="text-base">{formState.description}</CardDescription>
+      </CardHeader>
+      
+      <CardContent className="p-6 pt-8">
+        {formSubmitted ? renderThankYouScreen() : renderQuestion()}
+      </CardContent>
+      
+      {!formSubmitted && currentQuestionIndex !== null && (
+        <CardFooter className="flex justify-between p-6 pt-2 border-t">
+          <Button
+            variant="ghost"
+            onClick={goToPreviousQuestion}
+            disabled={currentQuestionIndex === 0}
+            className="rounded-lg gap-1"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </Button>
+          
+          <Button
+            onClick={goToNextQuestion}
+            disabled={!shouldShowNextButton()}
+            className="rounded-lg gap-1 bg-accent text-accent-foreground hover:bg-accent/90"
+          >
+            {currentQuestionIndex >= formState.questions.length - 1 ? "Submit" : "Next"}
+            <ArrowRight className="h-4 w-4 ml-1" />
+          </Button>
+        </CardFooter>
+      )}
+    </Card>
   );
 };
 

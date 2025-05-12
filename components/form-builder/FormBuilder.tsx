@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
-import { FormState, Question } from "./FormDesigner";
-import { EditIcon, PlusIcon, TrashIcon, SaveIcon, MoveUpIcon, MoveDownIcon } from "lucide-react";
+import { FormState, Question, FormSettings } from "./FormDesigner";
+import { EditIcon, PlusIcon, TrashIcon, SaveIcon, MoveUpIcon, MoveDownIcon, Sparkles, Settings, FileCode, Eye, ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +42,8 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [formDetailsExpanded, setFormDetailsExpanded] = useState(true);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
 
   // Load form if editing
   useEffect(() => {
@@ -198,19 +199,23 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
   };
 
   const moveQuestion = (index: number, direction: "up" | "down") => {
-    if (
-      (direction === "up" && index === 0) || 
-      (direction === "down" && index === formState.questions.length - 1)
-    ) {
-      return;
-    }
-
-    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (direction === "up" && index > 0) {
+      setFormState(prev => {
+        const newQuestions = [...prev.questions];
+        const temp = newQuestions[index];
+        newQuestions[index] = newQuestions[index - 1];
+        newQuestions[index - 1] = temp;
+        return { ...prev, questions: newQuestions };
+      });
+    } else if (direction === "down" && index < formState.questions.length - 1) {
     setFormState(prev => {
       const newQuestions = [...prev.questions];
-      [newQuestions[index], newQuestions[newIndex]] = [newQuestions[newIndex], newQuestions[index]];
+        const temp = newQuestions[index];
+        newQuestions[index] = newQuestions[index + 1];
+        newQuestions[index + 1] = temp;
       return { ...prev, questions: newQuestions };
     });
+    }
   };
 
   const hasConditions = (question: Question): boolean => {
@@ -218,298 +223,296 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
   };
 
   const getQuestionTypeLabel = (type: string): string => {
-    switch (type) {
-      case "single_choice": return "Single Choice";
-      case "multiple_choice": return "Multiple Choice";
-      case "text_input": return "Text Input";
-      default: return "Unknown";
-    }
+    const labels: Record<string, string> = {
+      single_choice: "Single Choice",
+      multiple_choice: "Multiple Choice",
+      text_input: "Text Input",
+      number_input: "Number Input",
+      date_input: "Date Input",
+      dropdown: "Dropdown",
+    };
+    return labels[type] || type;
   };
 
   return (
-    <div className="w-full space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <Button 
-          variant="outline" 
-          className="text-sm"
-          onClick={() => setFormDetailsExpanded(!formDetailsExpanded)}
-        >
-          {formDetailsExpanded ? "Hide Form Details" : "Show Form Details"}
-        </Button>
-        
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleSave} 
-            disabled={loading}
-            className="bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 transition-all"
-          >
-            <SaveIcon className="w-4 h-4 mr-2" />
-            {loading ? "Saving..." : "Save Form"}
-          </Button>
-          {success && (
-            <div className="animate-fade-in bg-green-50 text-green-700 px-3 py-1 rounded-md text-sm flex items-center border border-green-200">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Saved
-            </div>
-          )}
-        </div>
-      </div>
-      
-      {formDetailsExpanded && (
-        <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-6 mb-6 animate-fade-in">
-          <h2 className="text-xl font-semibold mb-4">Form Details</h2>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title" className="text-sm font-medium">Form Title</Label>
-              <Input 
-                id="title" 
-                value={formState.title}
-                onChange={e => setFormState(prev => ({ ...prev, title: e.target.value }))}
-                className="border-zinc-300 dark:border-zinc-700 focus-visible:ring-black"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="description" className="text-sm font-medium">Form Description</Label>
-              <Input 
-                id="description" 
+    <div className="mx-auto w-full max-w-screen-xl animate-fade-in">
+      <div className="mb-8 rounded-lg bg-card border p-6 card-shadow-hover transition-all">
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div className="flex-1">
+            {editingTitle ? (
+              <div className="mb-2">
+                <Input
+                  value={formState.title}
+                  onChange={(e) => setFormState({...formState, title: e.target.value})}
+                  className="text-2xl font-bold"
+                  autoFocus
+                  onBlur={() => setEditingTitle(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') setEditingTitle(false);
+                  }}
+                />
+              </div>
+            ) : (
+              <h1 
+                className="text-2xl font-bold tracking-tight mb-2 flex items-center cursor-pointer group" 
+                onClick={() => setEditingTitle(true)}
+              >
+                {formState.title}
+                <EditIcon className="h-4 w-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </h1>
+            )}
+            
+            {editingDescription ? (
+              <Input
                 value={formState.description}
-                onChange={e => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                className="border-zinc-300 dark:border-zinc-700 focus-visible:ring-black"
+                onChange={(e) => setFormState({...formState, description: e.target.value})}
+                className="text-sm text-muted-foreground"
+                autoFocus
+                onBlur={() => setEditingDescription(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setEditingDescription(false);
+                }}
               />
-            </div>
+            ) : (
+              <p 
+                className="text-sm text-muted-foreground cursor-pointer group flex items-center" 
+                onClick={() => setEditingDescription(true)}
+              >
+                {formState.description}
+                <EditIcon className="h-3 w-3 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </p>
+            )}
+          </div>
+          
+          <div className="flex gap-2 mt-1">
+            <Button 
+              variant="outline" 
+              onClick={() => router.push("/protected/dashboard")}
+              className="rounded-lg"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="default"
+              onClick={handleSave} 
+              disabled={loading}
+              className={`rounded-lg shadow-sm relative overflow-hidden ${success ? 'bg-green-600 border-green-600 hover:bg-green-700' : 'bg-accent text-accent-foreground'}`}
+            >
+              {loading ? (
+                "Saving..."
+              ) : success ? (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Saved!
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="mr-2 h-4 w-4" />
+                  Save Form
+                </>
+              )}
+              {loading && (
+                <span className="absolute bottom-0 left-0 h-1 bg-primary/50 animate-pulse-soft" style={{ width: '100%' }}></span>
+              )}
+            </Button>
           </div>
         </div>
-      )}
-      
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-        <TabsList className="w-full bg-zinc-100 dark:bg-zinc-900 p-1 rounded-lg mb-6">
-          <TabsTrigger 
-            value="design" 
-            className="flex-1 data-[state=active]:bg-white data-[state=active]:text-black dark:data-[state=active]:bg-black dark:data-[state=active]:text-white rounded-md"
-          >
-            Design
-          </TabsTrigger>
-          <TabsTrigger 
-            value="preview" 
-            className="flex-1 data-[state=active]:bg-white data-[state=active]:text-black dark:data-[state=active]:bg-black dark:data-[state=active]:text-white rounded-md"
-          >
-            Preview
-          </TabsTrigger>
-          <TabsTrigger 
-            value="export" 
-            className="flex-1 data-[state=active]:bg-white data-[state=active]:text-black dark:data-[state=active]:bg-black dark:data-[state=active]:text-white rounded-md"
-          >
-            Export Code
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="design" className="animate-fade-in">
-          <div className="grid grid-cols-12 gap-6">
-            {/* Left sidebar - Steps */}
-            <div className="col-span-3 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-semibold">Steps</h2>
-              </div>
+      </div>
+
+      <Tabs 
+        defaultValue="design" 
+        value={activeTab} 
+        onValueChange={(value) => setActiveTab(value as any)}
+        className="space-y-4"
+      >
+        <div className="bg-card border rounded-lg p-1 flex overflow-x-auto">
+          <TabsList className="bg-transparent w-full flex justify-start">
+            <TabsTrigger value="design" className="px-6 py-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-md">
+              <Settings className="mr-2 h-4 w-4" />
+              Design
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="px-6 py-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-md">
+              <Eye className="mr-2 h-4 w-4" />
+              Preview
+            </TabsTrigger>
+            <TabsTrigger value="export" className="px-6 py-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-md">
+              <FileCode className="mr-2 h-4 w-4" />
+              Export
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="design" className="p-0 border-none">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 space-y-6">
+              {/* Questions Section */}
+              <div className="rounded-xl border bg-card p-6 card-shadow">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold">Questions</h2>
+                  <Button 
+                    onClick={addNewQuestion} 
+                    className="rounded-lg transition-all bg-accent text-accent-foreground shadow-sm shadow-accent/20"
+                  >
+                    <PlusIcon className="mr-2 h-4 w-4" /> 
+                    Add Question
+                  </Button>
+                </div>
               
-              <div className="space-y-2">
+                <div className="space-y-4">
                 {formState.questions.length === 0 ? (
-                  <div className="py-4 text-center text-zinc-500 dark:text-zinc-400 text-sm">
-                    No questions yet
-                  </div>
+                    <div className="text-center py-12 border border-dashed rounded-lg bg-secondary/20">
+                      <p className="text-muted-foreground">No questions yet. Click &quot;Add Question&quot; to get started.</p>
+                    </div>
                 ) : (
                   formState.questions.map((question, index) => (
                     <div 
                       key={question.id}
-                      className="flex items-center space-x-2 border border-zinc-200 dark:border-zinc-800 rounded-md p-2 group hover:border-zinc-300 dark:hover:border-zinc-700"
+                      className="relative rounded-lg border bg-card p-4 hover:border-accent transition-all group card-shadow-hover animate-fade-in"
                     >
-                      <div className="flex-shrink-0 rounded-full w-6 h-6 bg-zinc-100 dark:bg-zinc-800 text-xs flex items-center justify-center text-zinc-800 dark:text-zinc-200">
-                        {index + 1}
-                      </div>
-                      <div className="flex-1 truncate text-sm">
-                        Step {index + 1}
-                      </div>
-                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6 text-zinc-500"
-                                onClick={() => moveQuestion(index, "up")}
-                                disabled={index === 0}
-                              >
-                                <MoveUpIcon className="h-3 w-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Move up</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0 w-7 h-7 bg-accent/10 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                          <span className="text-sm font-medium">{index + 1}</span>
+                        </div>
+                        <div className="grow">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium">{question.text}</h3>
+                            {question.required && (
+                              <Badge variant="outline" className="text-xs font-normal">Required</Badge>
+                            )}
+                            {hasConditions(question) && (
+                              <Badge variant="outline" className="text-xs font-normal bg-accent/10 text-accent border-accent/20">
+                                Conditional
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground flex flex-wrap gap-2 items-center">
+                            <Badge variant="secondary" className="font-normal">
+                              {getQuestionTypeLabel(question.type)}
+                            </Badge>
+                            
+                            {question.type === "single_choice" || question.type === "multiple_choice" ? (
+                              <span>{question.options?.length || 0} options</span>
+                            ) : null}
+                          </div>
+                        </div>
+                          
+                        <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => moveQuestion(index, "up")} disabled={index === 0}>
+                                  <MoveUpIcon className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move Up</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => moveQuestion(index, "down")} disabled={index === formState.questions.length - 1}>
+                                  <MoveDownIcon className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move Down</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => editQuestion(question, index)}>
+                                  <EditIcon className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit Question</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6 text-zinc-500"
-                                onClick={() => moveQuestion(index, "down")}
-                                disabled={index === formState.questions.length - 1}
-                              >
-                                <MoveDownIcon className="h-3 w-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Move down</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => deleteQuestion(index)}>
+                                  <TrashIcon className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete Question</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                       </div>
                     </div>
                   ))
                 )}
-              </div>
-              
-              <div className="mt-4 border-t border-zinc-200 dark:border-zinc-800 pt-4">
-                <h3 className="text-sm font-medium mb-2">Legend</h3>
-                <div className="flex flex-col gap-2 text-xs">
-                 
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="py-0 px-1 h-4 text-[10px]">Conditional</Badge>
-                    <span>Has condition</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="py-0 px-1 h-4 text-[10px]">Multiple Selections</Badge>
-                    <span>Has multiple selections</span>
-                  </div>
-                
                 </div>
               </div>
             </div>
             
-            {/* Main content area - Questions */}
-            <div className="col-span-9 space-y-6">
-              {formState.questions.map((question, index) => (
-                <div 
-                  key={question.id} 
-                  className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden"
-                >
-                  <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-shrink-0 w-4 h-4 rounded-full bg-green-500"></div>
-                        <h3 className="font-medium text-md mr-2">
-                          {question.text} {question.required && <span className="text-red-500">*</span>}
-                        </h3>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          className="text-xs h-8"
-                          onClick={() => editQuestion(question, index)}
-                        >
-                          <EditIcon className="h-3.5 w-3.5 mr-1" /> Edit
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          className="text-xs h-8 text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
-                          onClick={() => deleteQuestion(index)}
-                        >
-                          <TrashIcon className="h-3.5 w-3.5 mr-1" /> Delete
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                      <span>Order: {index + 1}</span>
-                      <span>|</span>
-                      <span>{getQuestionTypeLabel(question.type)}</span>
-                      {hasConditions(question) && (
-                        <>
-                          <span>|</span>
-                          <Badge variant="outline" className="py-0.5 px-1.5 text-[10px]">Conditional</Badge>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-900">
-                    <div className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">Options:</div>
-                    <div className="grid grid-cols-3 gap-3">
-                      {question.type !== "text_input" && question.options && question.options.map(option => (
-                        <div key={option.id} className="flex items-center text-sm pl-3 py-1 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-md">
-                          <span>• {option.text}</span>
-                        </div>
-                      ))}
-                      {question.type === "text_input" && (
-                        <div className="flex items-center text-sm pl-3 py-1 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-md italic">
-                          Free form text answers
-                        </div>
-                      )}
-                    </div>
-                    
-                    {hasConditions(question) && (
-                      <div className="mt-4 text-xs">
-                        <div className="flex items-center gap-1 mb-2">
-                          <Badge variant="outline" className="py-0.5 px-1.5 text-[10px]">Conditional Display</Badge>
-                          <span className="text-zinc-500 dark:text-zinc-400">Shows when specific conditions are met</span>
-                        </div>
-                        
-                      </div>
-                    )}
-                  </div>
+            {/* Form Settings */}
+            <div className="space-y-6">
+              <div className="rounded-xl border bg-card p-6 card-shadow">
+                <h2 className="text-xl font-semibold mb-6">Form Settings</h2>
+                <FormSettingsEditor
+                  settings={formState.settings}
+                  onSettingsChange={(newSettings: FormSettings) => setFormState({...formState, settings: newSettings})}
+                />
                 </div>
-              ))}
-              
-              <Button 
-                onClick={addNewQuestion}
-                className="w-full py-6 border-dashed border-2 border-zinc-300 dark:border-zinc-700 bg-transparent hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-500 dark:text-zinc-400"
-              >
-                <PlusIcon className="h-5 w-5 mr-2" />
-                Add Question
-              </Button>
             </div>
           </div>
         </TabsContent>
         
-        <TabsContent value="preview" className="animate-fade-in">
-          <FormPreview formState={formState} />
+        <TabsContent value="preview" className="p-0 border-none">
+          <div className="rounded-xl border bg-card p-8 space-y-6 card-shadow">
+            {/* <div className="text-center max-w-lg mx-auto">
+              <h2 className="text-xl font-semibold mb-2">Form Preview</h2>
+              <p className="text-muted-foreground">
+                This is how your form will appear to users. Test the flow by answering questions.
+              </p>
+            </div> */}
+            <div className=" mx-auto">
+              <FormPreview formState={formState} />
+            </div>
+          </div>
         </TabsContent>
         
-        <TabsContent value="export" className="animate-fade-in">
-          <CodeExport formState={formState} />
+        <TabsContent value="export" className="p-0 border-none">
+          <div className="rounded-xl border bg-card p-8 space-y-6 card-shadow">
+            <div className="text-center max-w-lg mx-auto">
+              <h2 className="text-xl font-semibold mb-2">Export Form</h2>
+              <p className="text-muted-foreground">
+                Get the code to embed this form on your website.
+              </p>
+            </div>
+            <CodeExport formState={formState} />
+          </div>
         </TabsContent>
       </Tabs>
       
-      {/* Question Edit Dialog */}
+      {/* Edit Question Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingQuestionIndex !== null && editingQuestionIndex >= 0 ? "Edit Question" : "Add New Question"}</DialogTitle>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle className="text-lg">
+              {editingQuestionIndex !== null && editingQuestionIndex < formState.questions.length
+                ? "Edit Question"
+                : "Add New Question"}
+            </DialogTitle>
             <DialogDescription>
-              Configure the question settings and options
+              Configure your question details and options
             </DialogDescription>
           </DialogHeader>
-          
+          <div className="p-4">
           {editingQuestion && (
-            <div className="mt-4">
-              <QuestionEditor 
+              <QuestionEditor
                 question={editingQuestion}
-                questions={formState.questions}
-                onChange={(updatedQuestion) => setEditingQuestion(updatedQuestion)}
+                onChange={setEditingQuestion}
+                availableQuestions={formState.questions ? formState.questions.filter(q => q.id !== editingQuestion.id) : []}
+                onCancel={() => setEditDialogOpen(false)}
+                onSave={saveQuestionEdit}
               />
-              
-              <div className="flex justify-end mt-6 gap-2">
-                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={saveQuestionEdit}>
-                  Save Changes
-                </Button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

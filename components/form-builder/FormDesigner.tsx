@@ -30,29 +30,30 @@ import {
 import QuestionEditor from "./QuestionEditor";
 import FormSettingsEditor from "./FormSettingsEditor";
 
-type QuestionType = "multiple_choice" | "single_choice" | "text_input";
-
-export type Option = {
+export interface Option {
   id: string;
   text: string;
   icon?: string;
-};
+  description?: string;
+  imageUrl?: string;
+}
 
-export type Condition = {
+export interface Condition {
   questionId: string;
   values: string[]; // Array of option values that would make this condition true
-};
+}
 
-export type Question = {
+export interface Question {
   id: string;
   text: string;
-  type: QuestionType;
-  options?: Option[];
+  description?: string;
+  type: "single_choice" | "multiple_choice" | "text_input";
   required: boolean;
+  options?: Option[];
   conditions?: Condition[];
-  // Logic to combine multiple conditions for this question
-  conditionLogic?: "AND" | "OR"; 
-};
+  conditionLogic?: "AND" | "OR";
+  placeholder?: string;
+}
 
 export type FormSettings = {
   backgroundColor: string;
@@ -77,20 +78,17 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"questions" | "settings">("questions");
 
-  const addQuestion = (type: QuestionType) => {
+  const addQuestion = (type: "single_choice" | "multiple_choice" | "text_input") => {
     const newQuestion: Question = {
-      id: crypto.randomUUID(),
-      text: `New ${type.replace('_', ' ')} question`,
+      id: Date.now().toString(),
+      text: `Question ${formState.questions.length + 1}`,
       type,
-      required: false,
+      required: true,
+      options: type !== "text_input" ? [
+        { id: "opt-1", text: "Option 1" },
+        { id: "opt-2", text: "Option 2" }
+      ] : undefined
     };
-
-    if (type === "multiple_choice" || type === "single_choice") {
-      newQuestion.options = [
-        { id: crypto.randomUUID(), text: "Option 1" },
-        { id: crypto.randomUUID(), text: "Option 2" }
-      ];
-    }
 
     setFormState(prev => ({
       ...prev,
@@ -151,6 +149,20 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
       ...prev,
       settings: newSettings
     }));
+  };
+
+  const processQuestionVisibility = (
+    question: Question,
+    answers: Record<string, string | string[]>,
+    questions: Question[]
+  ) => {
+    if (!question.conditions || question.conditions.length === 0) {
+      return true;
+    }
+
+    const logic = question.conditionLogic || "AND";
+
+    // ... existing code ...
   };
 
   return (
@@ -333,14 +345,16 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
                   </CardHeader>
                   <CardContent>
                     {selectedQuestionIndex !== null ? (
-                  <QuestionEditor 
-                    question={formState.questions[selectedQuestionIndex]} 
-                    questions={formState.questions}
+                      <QuestionEditor 
+                        question={formState.questions[selectedQuestionIndex]} 
                         onChange={(updatedQuestion) => 
                           updateQuestion(selectedQuestionIndex, updatedQuestion)
-                        } 
-                  />
-                ) : (
+                        }
+                        availableQuestions={formState.questions.filter(q => 
+                          q.id !== formState.questions[selectedQuestionIndex].id
+                        )}
+                      />
+                    ) : (
                       <div className="flex flex-col justify-center items-center py-12 border-2 border-dashed rounded-md border-zinc-300 dark:border-zinc-700">
                         <p className="text-zinc-500 dark:text-zinc-400 mb-4">No question selected</p>
                         <p className="text-sm text-zinc-400 dark:text-zinc-500 max-w-md text-center">
@@ -348,8 +362,8 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
                         </p>
                       </div>
                     )}
-                    </CardContent>
-                  </Card>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>
@@ -364,10 +378,15 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-          <FormSettingsEditor 
-            settings={formState.settings}
-            onChange={updateFormSettings}
-          />
+              {activeTab === "settings" && (
+                <FormSettingsEditor 
+                  settings={formState.settings} 
+                  onSettingsChange={(newSettings: FormSettings) => setFormState({
+                    ...formState,
+                    settings: newSettings
+                  })} 
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
