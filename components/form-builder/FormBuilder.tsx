@@ -48,6 +48,7 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
   const [previewDialogOpen, setPreviewDialogOpen] = useState<boolean>(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState<boolean>(false);
   const [commitMessage, setCommitMessage] = useState<string>("");
+  const [latestVersionId, setLatestVersionId] = useState<string | null>(null);
 
   // Load form if editing
   useEffect(() => {
@@ -83,6 +84,9 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
           }
           
           if (formData && versionData && versionData.form_data) {
+            // Store the latest version ID
+            setLatestVersionId(versionData.id);
+            
             // Create a new state with both form metadata and form content
             const newFormState = {
               title: formData.title,
@@ -105,20 +109,52 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
     }
   }, [formId]);
 
-  // Regular save handler without versioning
+  // Regular save handler that updates both form metadata and the latest version
   const handleSave = async () => {
     setLoading(true);
     const supabase = createClient();
     try {
       if (formId) {
-        // Update form without adding new version
+        // Update form metadata
         await supabase.from("forms").update({
           title: formState.title,
           description: formState.description,
           updated_at: new Date().toISOString(),
         }).eq("id", formId);
+        
+        if (latestVersionId) {
+          // Create a new version instead of updating the existing one
+          const { data } = await supabase.from("form_versions").insert({
+            form_id: formId,
+            form_data: {
+              questions: formState.questions,
+              settings: formState.settings,
+            },
+            created_by: userId,
+            commit_message: "Updated via Save",
+          }).select("id").single();
+          
+          if (data) {
+            setLatestVersionId(data.id);
+          }
+        } else {
+          // If no latest version exists, create one
+          const { data } = await supabase.from("form_versions").insert({
+            form_id: formId,
+            form_data: {
+              questions: formState.questions,
+              settings: formState.settings,
+            },
+            created_by: userId,
+            commit_message: "Initial version",
+          }).select("id").single();
+          
+          if (data) {
+            setLatestVersionId(data.id);
+          }
+        }
       } else {
-        // Create new form without version
+        // Create new form
         const { data, error } = await supabase.from("forms").insert({
           user_id: userId,
           title: formState.title,
@@ -126,6 +162,21 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
         }).select("id").single();
         
         if (data && data.id) {
+          // Create initial version
+          const { data: versionData } = await supabase.from("form_versions").insert({
+            form_id: data.id,
+            form_data: {
+              questions: formState.questions,
+              settings: formState.settings,
+            },
+            created_by: userId,
+            commit_message: "Initial version",
+          }).select("id").single();
+          
+          if (versionData) {
+            setLatestVersionId(versionData.id);
+          }
+          
           router.replace(`/form-builder?id=${data.id}`);
         }
       }
@@ -138,21 +189,21 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
     }
   };
   
-  // Save and archive handler with versioning
+  // Save and archive handler with versioning (creates a new version)
   const handleSaveAndArchive = async () => {
     setLoading(true);
     const supabase = createClient();
     try {
       if (formId) {
-        // Update form and add new version
+        // Update form metadata
         await supabase.from("forms").update({
           title: formState.title,
           description: formState.description,
           updated_at: new Date().toISOString(),
         }).eq("id", formId);
         
-        // Store the complete form state in form_versions
-        await supabase.from("form_versions").insert({
+        // Create a new version
+        const { data } = await supabase.from("form_versions").insert({
           form_id: formId,
           form_data: {
             questions: formState.questions,
@@ -160,7 +211,11 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
           },
           created_by: userId,
           commit_message: commitMessage || "Updated via builder UI",
-        });
+        }).select("id").single();
+        
+        if (data) {
+          setLatestVersionId(data.id);
+        }
       } else {
         // Create new form and version
         const { data, error } = await supabase.from("forms").insert({
@@ -170,13 +225,21 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
         }).select("id").single();
         
         if (data && data.id) {
-          // Store the complete form state in form_versions
-          await supabase.from("form_versions").insert({
+          // Create initial version
+          const { data: versionData } = await supabase.from("form_versions").insert({
             form_id: data.id,
-            form_data: formState, // Store the entire form state
+            form_data: {
+              questions: formState.questions,
+              settings: formState.settings,
+            },
             created_by: userId,
             commit_message: commitMessage || "Initial version",
-          });
+          }).select("id").single();
+          
+          if (versionData) {
+            setLatestVersionId(versionData.id);
+          }
+          
           router.replace(`/form-builder?id=${data.id}`);
         }
       }
@@ -339,7 +402,7 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
               <Eye className="mr-2 h-4 w-4" />
               Preview
             </Button>
-            <Button 
+            {/* <Button 
               variant="default"
               onClick={handleSave} 
               disabled={loading}
@@ -361,12 +424,12 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
               {loading && (
                 <span className="absolute bottom-0 left-0 h-1 bg-primary/50 animate-pulse-soft" style={{ width: '100%' }}></span>
               )}
-            </Button>
+            </Button> */}
             <Button 
               variant="outline"
               onClick={() => setArchiveDialogOpen(true)} 
               disabled={loading}
-              className="rounded-lg gap-1"
+              className="rounded-lg gap-1 bg-accent text-accent-foreground"
             >
               <Archive className="h-4 w-4" />
               Save + Archive

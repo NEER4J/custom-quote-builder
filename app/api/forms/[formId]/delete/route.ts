@@ -34,7 +34,11 @@ export async function POST(
     // Revalidate the dashboard page
     revalidatePath("/dashboard");
     
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    // Redirect with success message
+    const redirectUrl = new URL("/dashboard", req.url);
+    redirectUrl.searchParams.set('success', 'true');
+    redirectUrl.searchParams.set('action', 'delete');
+    return NextResponse.redirect(redirectUrl);
   } catch (error) {
     console.error("Error deleting form:", error);
     return NextResponse.json(

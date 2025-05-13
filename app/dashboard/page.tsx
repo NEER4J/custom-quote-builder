@@ -2,10 +2,19 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ClockIcon, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
+import { CheckCircle, ClockIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import DeleteConfirmation from "@/components/delete-confirmation";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const success = searchParams.success;
+  const action = searchParams.action;
+  
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,6 +42,16 @@ export default async function DashboardPage() {
           </Button>
         </Link>
       </div>
+      
+      {success && (
+        <Alert variant="success" className="mb-4">
+          <CheckCircle className="h-4 w-4" />
+          <AlertTitle>Success</AlertTitle>
+          <AlertDescription>
+            {action === 'delete' ? 'Form has been deleted successfully.' : 'Action completed successfully.'}
+          </AlertDescription>
+        </Alert>
+      )}
       
       {forms && forms.length > 0 ? (
         <div className="grid gap-4">
@@ -74,25 +93,12 @@ export default async function DashboardPage() {
                       Edit
                     </Button>
                   </Link>
-                  <form action={`/api/forms/${form.id}/delete`} method="POST">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            type="submit" 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex items-center gap-1 text-destructive hover:bg-destructive/10"
-                          >
-                            <TrashIcon size={14} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Delete Form</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </form>
+                  <DeleteConfirmation
+                    id={form.id}
+                    name={form.title}
+                    deleteAction={`/api/forms/${form.id}/delete`}
+                    type="form"
+                  />
                 </div>
               </div>
             </div>
