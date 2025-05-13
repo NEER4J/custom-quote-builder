@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
 import { FormState, Question, FormSettings } from "./FormDesigner";
-import { EditIcon, PlusIcon, TrashIcon, SaveIcon, MoveUpIcon, MoveDownIcon, Sparkles, Settings, FileCode, Eye, ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { EditIcon, PlusIcon, TrashIcon, SaveIcon, MoveUpIcon, MoveDownIcon, Sparkles, Settings, FileCode, Eye, ChevronDown, ChevronUp, Pencil, Archive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +14,9 @@ import QuestionEditor from "./QuestionEditor";
 import FormSettingsEditor from "./FormSettingsEditor";
 import FormPreview from "./FormPreview";
 import CodeExport from "./CodeExport";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
 
 type FormBuilderProps = {
   userId: string;
@@ -36,15 +37,17 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
       zapierWebhookUrl: "",
     },
   });
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [success, setSuccess] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"design" | "export">("design");
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
-  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState<boolean>(false);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState<boolean>(false);
+  const [commitMessage, setCommitMessage] = useState<string>("");
 
   // Load form if editing
   useEffect(() => {
@@ -102,8 +105,41 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
     }
   }, [formId]);
 
-  // Save handler
+  // Regular save handler without versioning
   const handleSave = async () => {
+    setLoading(true);
+    const supabase = createClient();
+    try {
+      if (formId) {
+        // Update form without adding new version
+        await supabase.from("forms").update({
+          title: formState.title,
+          description: formState.description,
+          updated_at: new Date().toISOString(),
+        }).eq("id", formId);
+      } else {
+        // Create new form without version
+        const { data, error } = await supabase.from("forms").insert({
+          user_id: userId,
+          title: formState.title,
+          description: formState.description,
+        }).select("id").single();
+        
+        if (data && data.id) {
+          router.replace(`/form-builder?id=${data.id}`);
+        }
+      }
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2000);
+    } catch (error) {
+      console.error("Error saving form:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Save and archive handler with versioning
+  const handleSaveAndArchive = async () => {
     setLoading(true);
     const supabase = createClient();
     try {
@@ -123,7 +159,7 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
             settings: formState.settings,
           },
           created_by: userId,
-          commit_message: "Updated via builder UI",
+          commit_message: commitMessage || "Updated via builder UI",
         });
       } else {
         // Create new form and version
@@ -139,13 +175,15 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
             form_id: data.id,
             form_data: formState, // Store the entire form state
             created_by: userId,
-            commit_message: "Initial version",
+            commit_message: commitMessage || "Initial version",
           });
           router.replace(`/form-builder?id=${data.id}`);
         }
       }
       setSuccess(true);
       setTimeout(() => setSuccess(false), 2000);
+      setArchiveDialogOpen(false);
+      setCommitMessage("");
     } catch (error) {
       console.error("Error saving form:", error);
     } finally {
@@ -305,7 +343,7 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
               variant="default"
               onClick={handleSave} 
               disabled={loading}
-              className={`rounded-lg  relative overflow-hidden ${success ? 'bg-green-600 border-green-600 hover:bg-green-700' : 'bg-accent text-accent-foreground'}`}
+              className={`rounded-lg relative overflow-hidden ${success ? 'bg-green-600 border-green-600 hover:bg-green-700' : 'bg-accent text-accent-foreground'}`}
             >
               {loading ? (
                 "Saving..."
@@ -317,12 +355,21 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
               ) : (
                 <>
                   <SaveIcon className="mr-2 h-4 w-4" />
-                  Save Form
+                  Save
                 </>
               )}
               {loading && (
                 <span className="absolute bottom-0 left-0 h-1 bg-primary/50 animate-pulse-soft" style={{ width: '100%' }}></span>
               )}
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setArchiveDialogOpen(true)} 
+              disabled={loading}
+              className="rounded-lg gap-1"
+            >
+              <Archive className="h-4 w-4" />
+              Save + Archive
             </Button>
           </div>
         </div>
@@ -468,13 +515,8 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
         </TabsContent>
         
         <TabsContent value="export" className="p-0 border-none">
-          <div className="rounded-xl border bg-card p-8 space-y-6 card-shadow">
-            <div className="text-center max-w-lg mx-auto">
-              <h2 className="text-xl font-semibold mb-2">Export Form</h2>
-              <p className="text-muted-foreground">
-                Get the code to embed this form on your website.
-              </p>
-            </div>
+          <div className="rounded-xl border bg-card space-y-6 card-shadow">
+        
             <CodeExport formState={formState} />
           </div>
         </TabsContent>
@@ -518,6 +560,34 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
               />
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Archive Dialog */}
+      <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Archive this version</DialogTitle>
+            <DialogDescription>
+              Save this version with a description of what changed. This will create a restore point.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Label htmlFor="commitMessage" className="mb-2 block">What changed in this version?</Label>
+            <Textarea
+              id="commitMessage"
+              placeholder="Describe the changes you made..."
+              value={commitMessage}
+              onChange={(e) => setCommitMessage(e.target.value)}
+              className="h-24"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setArchiveDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveAndArchive} disabled={loading}>
+              {loading ? "Saving..." : "Save & Archive"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -2,7 +2,8 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ClockIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { ClockIcon, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -73,6 +74,25 @@ export default async function DashboardPage() {
                       Edit
                     </Button>
                   </Link>
+                  <form action={`/api/forms/${form.id}/delete`} method="POST">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            type="submit" 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex items-center gap-1 text-destructive hover:bg-destructive/10"
+                          >
+                            <TrashIcon size={14} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete Form</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </form>
                 </div>
               </div>
             </div>

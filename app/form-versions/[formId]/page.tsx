@@ -2,7 +2,8 @@ import { createClient } from "@/utils/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftIcon, Clock, EyeIcon, HistoryIcon, RotateCcwIcon } from "lucide-react";
+import { ArrowLeftIcon, Clock, EyeIcon, HistoryIcon, RotateCcwIcon, TrashIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default async function FormVersionsPage({
   params,
@@ -105,6 +106,28 @@ export default async function FormVersionsPage({
                       <RotateCcwIcon size={14} />
                       Restore
                     </Button>
+                  </form>
+                )}
+                {versions.length > 1 && ( // Don't allow deleting if there's only one version
+                  <form action={`/api/forms/${formId}/versions/${version.id}/delete`} method="POST">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="submit"
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive hover:bg-destructive/10"
+                            disabled={version.version_number === versions[0].version_number && versions.length > 1}
+                          >
+                            <TrashIcon size={14} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete Version</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </form>
                 )}
               </div>

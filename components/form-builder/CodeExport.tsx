@@ -28,6 +28,9 @@ const CodeExport = ({ formState }: CodeExportProps) => {
 
   // Generate HTML code for the form
   const generateHTML = (): string => {
+    // Create a custom prefix for all classes to prevent conflicts
+    const prefix = "qform-";
+    
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,123 +39,91 @@ const CodeExport = ({ formState }: CodeExportProps) => {
   <title>${formState.title}</title>
   ${activeTab === "single" 
     ? `<style>
-${generateCSS()}
+${generateCSS(prefix)}
     </style>` 
     : '<link rel="stylesheet" href="form-styles.css">'
   }
 </head>
 <body style="background-color: ${formState.settings.backgroundColor}">
-  <div class="quote-form-container">
-    <div class="quote-form-card">
+  <div class="${prefix}container">
+    <div class="${prefix}card">
       <!-- Progress bar -->
-      <div class="progress-bar">
-        <div class="progress-bar-fill" id="progress-bar"></div>
+      <div class="${prefix}progress-bar">
+        <div class="${prefix}progress-bar-fill" id="${prefix}progress-bar"></div>
       </div>
       
-      <div class="form-content" id="form-content">
-        <div id="questions-container">
+      <div class="${prefix}form-content" id="${prefix}form-content">
+        <div id="${prefix}questions-container">
           ${formState.questions.map((question, index) => `
-          <div class="question" id="question-${question.id}" ${index > 0 ? 'style="display: none;"' : ''}>
-            <div class="question-header">
-              <h2 class="question-text">${question.text}${question.required ? '<span class="required">*</span>' : ''}</h2>
-              ${question.description ? `<p class="question-description">${question.description}</p>` : ''}
+          <div class="${prefix}question" id="${prefix}question-${question.id}" ${index > 0 ? 'style="display: none;"' : ''}>
+            <div class="${prefix}question-header">
+              <h2 class="${prefix}question-text">${question.text}${question.required ? `<span class="${prefix}required">*</span>` : ''}</h2>
+              ${question.description ? `<p class="${prefix}question-description">${question.description}</p>` : ''}
             </div>
             
             ${question.type === 'text_input' 
-              ? `<div class="text-input-container">
-                  <input type="text" class="text-input" id="input-${question.id}" placeholder="Type your answer here..." ${question.required ? 'required' : ''} />
+              ? `<div class="${prefix}text-input-container">
+                  <input type="text" class="${prefix}text-input" id="${prefix}input-${question.id}" placeholder="Type your answer here..." ${question.required ? 'required' : ''} />
                 </div>`
               : question.type === 'single_choice'
-                ? `<div class="options-container">
-                    <div class="desktop-options">
+                ? `<div class="${prefix}options-container">
+                    <div class="${prefix}options-grid">
                       ${question.options?.map(option => `
-                        <div class="option single-option" data-option-id="${option.id}" data-question-id="${question.id}">
+                        <div class="${prefix}option ${prefix}single-option" data-option-id="${option.id}" data-question-id="${question.id}">
                           ${option.description ? `
-                          <div class="info-button" data-option-id="${option.id}">
-                            <span class="info-icon">i</span>
-                            <div class="info-tooltip" id="tooltip-${option.id}">${option.description}</div>
+                          <div class="${prefix}info-button" data-option-id="${option.id}">
+                            <span class="${prefix}info-icon">i</span>
+                            <div class="${prefix}info-tooltip" id="${prefix}tooltip-${option.id}">${option.description}</div>
                           </div>` : ''}
-                          <div class="option-content">
-                            ${option.icon ? `<div class="option-icon"><img src="${option.icon}" alt="${option.text}" class="option-image"></div>` : ''}
-                            <span class="option-text">${option.text}</span>
+                          <div class="${prefix}option-content">
+                            ${option.icon ? `<div class="${prefix}option-icon"><img src="${option.icon}" alt="${option.text}" class="${prefix}option-image"></div>` : ''}
+                            <span class="${prefix}option-text">${option.text}</span>
                           </div>
-                        </div>
-                      `).join('')}
-                    </div>
-                    <div class="mobile-options">
-                      ${question.options?.map(option => `
-                        <div class="mobile-option" data-option-id="${option.id}" data-question-id="${question.id}">
-                          ${option.description ? `
-                          <div class="info-button" data-option-id="${option.id}">
-                            <span class="info-icon">i</span>
-                            <div class="info-tooltip" id="tooltip-${option.id}">${option.description}</div>
-                          </div>` : ''}
-                          <div class="option-content">
-                            ${option.icon ? `<div class="option-icon"><img src="${option.icon}" alt="${option.text}" class="option-image"></div>` : ''}
-                            <span class="option-text">${option.text}</span>
-                          </div>
-                          <div class="check-indicator"></div>
                         </div>
                       `).join('')}
                     </div>
                   </div>`
-                : `<div class="options-container">
-                    <div class="desktop-options">
+                : `<div class="${prefix}options-container">
+                    <div class="${prefix}options-grid">
                       ${question.options?.map(option => `
-                        <div class="option multiple-option" data-option-id="${option.id}" data-question-id="${question.id}">
+                        <div class="${prefix}option ${prefix}multiple-option" data-option-id="${option.id}" data-question-id="${question.id}">
                           ${option.description ? `
-                          <div class="info-button" data-option-id="${option.id}">
-                            <span class="info-icon">i</span>
-                            <div class="info-tooltip" id="tooltip-${option.id}">${option.description}</div>
+                          <div class="${prefix}info-button" data-option-id="${option.id}">
+                            <span class="${prefix}info-icon">i</span>
+                            <div class="${prefix}info-tooltip" id="${prefix}tooltip-${option.id}">${option.description}</div>
                           </div>` : ''}
-                          <div class="checkbox"><div class="checkbox-inner"></div></div>
-                          <div class="option-content">
-                            ${option.icon ? `<div class="option-icon"><img src="${option.icon}" alt="${option.text}" class="option-image"></div>` : ''}
-                            <span class="option-text">${option.text}</span>
+                          <div class="${prefix}checkbox"><div class="${prefix}checkbox-inner"></div></div>
+                          <div class="${prefix}option-content">
+                            ${option.icon ? `<div class="${prefix}option-icon"><img src="${option.icon}" alt="${option.text}" class="${prefix}option-image"></div>` : ''}
+                            <span class="${prefix}option-text">${option.text}</span>
                           </div>
-                        </div>
-                      `).join('')}
-                    </div>
-                    <div class="mobile-options">
-                      ${question.options?.map(option => `
-                        <div class="mobile-option" data-option-id="${option.id}" data-question-id="${question.id}">
-                          ${option.description ? `
-                          <div class="info-button" data-option-id="${option.id}">
-                            <span class="info-icon">i</span>
-                            <div class="info-tooltip" id="tooltip-${option.id}">${option.description}</div>
-                          </div>` : ''}
-                          <div class="option-content">
-                            ${option.icon ? `<div class="option-icon"><img src="${option.icon}" alt="${option.text}" class="option-image"></div>` : ''}
-                            <span class="option-text">${option.text}</span>
-                          </div>
-                          <div class="checkbox"><div class="checkbox-inner"></div></div>
                         </div>
                       `).join('')}
                     </div>
                   </div>`
             }
-            <div class="next-button-container">
-              <button class="next-button" id="next-button-${question.id}" style="background-color: ${formState.settings.buttonColor}">
-                Next <span class="next-icon">→</span>
+            <div class="${prefix}next-button-container">
+              <button class="${prefix}next-button" id="${prefix}next-button-${question.id}" style="background-color: ${formState.settings.buttonColor}">
+                Next <span class="${prefix}next-icon">→</span>
               </button>
             </div>
           </div>`).join('')}
           
-          <div class="question" id="thank-you-screen" style="display: none;">
-            <div class="thank-you-content">
-              <div class="thank-you-icon">✓</div>
+          <div class="${prefix}question" id="${prefix}thank-you-screen" style="display: none;">
+            <div class="${prefix}thank-you-content">
+              <div class="${prefix}thank-you-icon">✓</div>
               <h2>Thank you for your response!</h2>
               <p>Your answers have been recorded. We appreciate your time.</p>
-              <button class="start-over-button" id="start-over-button" style="background-color: ${formState.settings.buttonColor}">
-                <span class="refresh-icon">↻</span> Start Over
+              <button class="${prefix}start-over-button" id="${prefix}start-over-button" style="background-color: ${formState.settings.buttonColor}">
+                <span class="${prefix}refresh-icon">↻</span> Start Over
               </button>
             </div>
           </div>
         </div>
         
-        <div class="form-navigation" id="form-navigation">
-          <button class="back-button" id="back-button" disabled>
-            <span class="back-icon">←</span> Back
+        <div class="${prefix}form-navigation" id="${prefix}form-navigation">
+          <button class="${prefix}back-button" id="${prefix}back-button" disabled>
+            <span class="${prefix}back-icon">←</span> Back
           </button>
         </div>
       </div>
@@ -161,7 +132,7 @@ ${generateCSS()}
 
   ${activeTab === "single" 
     ? `<script>
-${generateJS()}
+${generateJS(prefix)}
     </script>` 
     : '<script src="form-script.js"></script>'
   }
@@ -170,32 +141,29 @@ ${generateJS()}
   };
 
   // Generate CSS code
-  const generateCSS = (): string => {
+  const generateCSS = (prefix: string = "qform-"): string => {
     return `/* Quote Form Styles */
 * {
   box-sizing: border-box;
+}
+
+body{
   margin: 0;
-  padding: 0;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  line-height: 1.5;
-  color: #333;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.quote-form-container {
+.${prefix}container {
   width: 100%;
   margin: 0 auto;
   flex: 1;
   display: flex;
   flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+  color: #333;
+  min-height: 100vh;
 }
 
-.quote-form-card {
+.${prefix}card {
   background-color: #f3f4f6;
   overflow: hidden;
   flex: 1;
@@ -203,27 +171,27 @@ body {
   flex-direction: column;
 }
 
-.progress-bar {
+.${prefix}progress-bar {
   width: 100%;
   height: 4px;
   background-color: #e9ecef;
 }
 
-.progress-bar-fill {
+.${prefix}progress-bar-fill {
   height: 100%;
   background-color: ${formState.settings.buttonColor};
   width: 0;
   transition: width 0.5s ease-out;
 }
 
-.form-content {
+.${prefix}form-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   padding: 1.5rem;
 }
 
-#questions-container {
+#${prefix}questions-container {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -231,47 +199,48 @@ body {
   align-items: center;
 }
 
-.question {
+.${prefix}question {
   width: 100%;
-  max-width: 900px;
+  max-width: 1000px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  animation: fadeIn 0.3s ease-in-out;
+  animation: ${prefix}fadeIn 0.3s ease-in-out;
 }
 
-@keyframes fadeIn {
+@keyframes ${prefix}fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-.question-header {
-  margin-bottom: 2rem;
+.${prefix}question-header {
+  margin-bottom: 1rem;
   text-align: center;
 }
 
-.question-text {
+.${prefix}question-text {
   font-size: 2rem;
   font-weight: 500;
   margin-bottom: 0.5rem;
 }
 
-.question-description {
+.${prefix}question-description {
   color: #6c757d;
+  margin-top: 0rem;
 }
 
-.required {
+.${prefix}required {
   color: #e53e3e;
   margin-left: 3px;
 }
 
-.text-input-container {
+.${prefix}text-input-container {
   width: 100%;
   max-width: 400px;
   margin: 0 auto;
 }
 
-.text-input {
+.${prefix}text-input {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #ced4da;
@@ -280,103 +249,139 @@ body {
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-.text-input:focus {
+.${prefix}text-input:focus {
   outline: none;
   border-color: ${formState.settings.buttonColor};
   box-shadow: 0 0 0 2px rgba(${hexToRgb(formState.settings.buttonColor)}, 0.25);
 }
 
-.options-container {
+.${prefix}options-container {
   width: 100%;
   padding: 0 0.5rem;
 }
 
-.desktop-options {
+.${prefix}options-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(1, 1fr);
   gap: 0.75rem;
+  justify-content: center;
+}
+
+/* Responsive grid adjustments */
+@media (min-width: 640px) {
+  .${prefix}options-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (min-width: 768px) {
-  .desktop-options {
+  .${prefix}options-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (min-width: 1024px) {
-  .desktop-options {
+  .${prefix}options-grid {
     grid-template-columns: repeat(4, 1fr);
+    justify-content: center;
   }
 }
 
-.mobile-options {
-  display: none;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.option {
+.${prefix}option {
   position: relative;
   padding: 1rem;
   background-color: white;
   border-radius: 0.375rem;
   cursor: pointer;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   transition: all 0.2s ease;
   height: 100%;
-  text-align: center;
+  text-align: left;
+  gap: 1rem;
 }
 
-.option:hover {
+.${prefix}option:hover {
   transform: scale(1.05);
 }
 
-.option.selected {
+.${prefix}option.selected {
   border: 2px solid ${formState.settings.buttonColor};
 }
 
-.option:not(.selected) {
+.${prefix}option:not(.selected) {
   border: 1px solid transparent;
 }
 
-.option-content {
+.${prefix}option-content {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
   height: 100%;
+  gap: 1rem;
 }
 
-.option-icon {
-  margin-bottom: 0.75rem;
-  width: 100%;
+.${prefix}option-icon {
+  width: 3.5rem;
+  flex-shrink: 0;
   display: flex;
   justify-content: center;
 }
 
-.option-image {
-  height: 5rem;
+.${prefix}option-image {
+  height: 3.5rem;
   width: auto;
   object-fit: contain;
 }
 
-.option-text {
-  text-align: center;
+.${prefix}option-text {
+  text-align: left;
   font-weight: 500;
 }
 
-.info-button {
+/* Desktop styles */
+@media (min-width: 640px) {
+  .${prefix}option {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 0;
+  }
+  
+  .${prefix}option-content {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+  }
+  
+  .${prefix}option-icon {
+    width: 100%;
+    margin-bottom: 0.75rem;
+  }
+  
+  .${prefix}option-image {
+    height: 7rem;
+  }
+  
+  .${prefix}option-text {
+    text-align: center;
+    font-size: 1.25rem;
+  }
+}
+
+.${prefix}info-button {
   position: absolute;
   top: 0.5rem;
   left: 0.5rem;
   z-index: 10;
 }
 
-.info-icon {
+.${prefix}info-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -390,7 +395,7 @@ body {
   cursor: pointer;
 }
 
-.info-tooltip {
+.${prefix}info-tooltip {
   display: none;
   position: absolute;
   left: 0;
@@ -407,11 +412,11 @@ body {
   color: #4b5563;
 }
 
-.info-button:hover .info-tooltip {
+.${prefix}info-button:hover .${prefix}info-tooltip {
   display: block;
 }
 
-.checkbox {
+.${prefix}checkbox {
   position: absolute;
   top: 0.8rem;
   right: 0.8rem;
@@ -424,86 +429,64 @@ body {
   justify-content: center;
 }
 
-.checkbox-inner {
+.${prefix}checkbox-inner {
   display: none;
   width: 0.625rem;
   height: 0.625rem;
 }
 
-.multiple-option.selected .checkbox-inner {
+.${prefix}multiple-option.selected .${prefix}checkbox-inner {
   display: block;
 }
 
-.multiple-option.selected .checkbox::after {
+.${prefix}multiple-option.selected .${prefix}checkbox::after {
   content: "✓";
   position: absolute;
   color: ${formState.settings.buttonColor};
   font-size: 0.75rem;
 }
 
-.mobile-option {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem;
-  background-color: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  position: relative;
+/* Mobile-specific styles */
+@media (max-width: 639px) {
+  .${prefix}option {
+    flex-direction: row;
+    padding: 0.75rem;
+  }
+  
+  .${prefix}option-content {
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
+    gap: 0.75rem;
+  }
+  
+  .${prefix}option-icon {
+    margin-bottom: 0;
+    width: 4rem;
+    flex-shrink: 0;
+  }
+  
+  .${prefix}option-image {
+    height: 3.5rem;
+  }
+  
+  .${prefix}question-text {
+    font-size: 1.5rem;
+  }
+  
+  .${prefix}form-content {
+    padding: 1rem;
+  }
 }
 
-.mobile-option.selected {
-  border: 2px solid ${formState.settings.buttonColor};
-}
-
-.mobile-option .option-content {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: start;
-  gap: 0.75rem;
-  width: 100%;
-}
-
-.mobile-option .option-icon {
-  margin-bottom: 0;
-  width: 4rem;
-  flex-shrink: 0;
-  margin-right: 0;
-}
-
-.mobile-option .option-image {
-  height: 3.5rem;
-}
-
-.mobile-option .option-text {
-  text-align: center;
-}
-
-.check-indicator {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.mobile-option.selected .check-indicator::after {
-  content: "✓";
-  color: ${formState.settings.buttonColor};
-  position: absolute;
-  font-size: 1rem;
-}
-
-.next-button-container {
+.${prefix}next-button-container {
   display: flex;
   justify-content: center;
   margin-top: 2rem;
   width: 100%;
 }
 
-.form-navigation {
+.${prefix}form-navigation {
   display: flex;
   justify-content: flex-start;
   padding-top: 1.5rem;
@@ -511,7 +494,7 @@ body {
   margin-top: 1.5rem;
 }
 
-.back-button, .next-button {
+.${prefix}back-button, .${prefix}next-button {
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
   font-size: 0.875rem;
@@ -521,34 +504,40 @@ body {
   gap: 0.25rem;
 }
 
-.back-button {
+.${prefix}back-button {
   background-color: transparent;
   color: #6b7280;
   border: none;
 }
 
-.back-button:disabled {
+.${prefix}back-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  background-color: transparent;
 }
 
-.next-button {
+.${prefix}back-button:hover {
+  background-color: ${formState.settings.buttonColor};
+  color: white;
+}
+
+.${prefix}next-button {
   background-color: ${formState.settings.buttonColor} !important;
   color: white;
   border: none;
 }
 
-.next-button:disabled {
+.${prefix}next-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
-.thank-you-content {
+.${prefix}thank-you-content {
   text-align: center;
   padding: 2rem 0;
 }
 
-.thank-you-icon {
+.${prefix}thank-you-icon {
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -561,19 +550,19 @@ body {
   margin-bottom: 1.5rem;
 }
 
-.thank-you-content h2 {
+.${prefix}thank-you-content h2 {
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
-.thank-you-content p {
+.${prefix}thank-you-content p {
   color: #6c757d;
   max-width: 24rem;
   margin: 0 auto 1.5rem;
 }
 
-.start-over-button {
+.${prefix}start-over-button {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -586,31 +575,13 @@ body {
   font-size: 0.875rem;
 }
 
-.refresh-icon {
+.${prefix}refresh-icon {
   font-size: 1rem;
-}
-
-@media (max-width: 640px) {
-  .desktop-options {
-    display: none;
-  }
-  
-  .mobile-options {
-    display: flex;
-  }
-  
-  .question-text {
-    font-size: 1.25rem;
-  }
-  
-  .form-content {
-    padding: 1rem;
-  }
 }`;
   };
 
   // Generate JavaScript code
-  const generateJS = (): string => {
+  const generateJS = (prefix: string = "qform-"): string => {
     const conditionsJSON = JSON.stringify(
       formState.questions
         .filter(q => q.conditions && q.conditions.length > 0)
@@ -634,11 +605,11 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   // DOM elements
-  const questionsContainer = document.getElementById('questions-container');
-  const backButton = document.getElementById('back-button');
-  const progressBar = document.getElementById('progress-bar');
-  const startOverButton = document.getElementById('start-over-button');
-  const formNavigation = document.getElementById('form-navigation');
+  const questionsContainer = document.getElementById('${prefix}questions-container');
+  const backButton = document.getElementById('${prefix}back-button');
+  const progressBar = document.getElementById('${prefix}progress-bar');
+  const startOverButton = document.getElementById('${prefix}start-over-button');
+  const formNavigation = document.getElementById('${prefix}form-navigation');
   
   // Track visible questions
   let activeQuestionIds = [];
@@ -648,7 +619,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function initForm() {
     // Set up single choice option click handlers
-    document.querySelectorAll('.single-option').forEach(option => {
+    document.querySelectorAll('.${prefix}single-option').forEach(option => {
       option.addEventListener('click', function() {
         const questionId = this.dataset.questionId;
         const optionId = this.dataset.optionId;
@@ -670,7 +641,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Set up multiple choice option click handlers
-    document.querySelectorAll('.multiple-option').forEach(option => {
+    document.querySelectorAll('.${prefix}multiple-option').forEach(option => {
       option.addEventListener('click', function() {
         const questionId = this.dataset.questionId;
         const optionId = this.dataset.optionId;
@@ -701,75 +672,27 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
     
-    // Set up mobile option click handlers
-    document.querySelectorAll('.mobile-option').forEach(option => {
-      option.addEventListener('click', function() {
-        const questionId = this.dataset.questionId;
-        const optionId = this.dataset.optionId;
-        const question = state.questions.find(q => q.id === questionId);
-        
-        if (question.type === 'multiple_choice') {
-          // For multiple choice, toggle selection
-          if (!state.answers[questionId]) {
-            state.answers[questionId] = [];
-          }
-          
-          const answers = state.answers[questionId];
-          const index = answers.indexOf(optionId);
-          
-          if (index === -1) {
-            answers.push(optionId);
-          } else {
-            answers.splice(index, 1);
-          }
-          
-          // Update UI
-          updateMultipleChoiceSelection(questionId);
-          
-          // Recalculate visible questions based on new answer
-          calcVisibleQuestions();
-          
-          // Update next button state
-          updateNextButtonState();
-        } else {
-          // For single choice
-          state.answers[questionId] = optionId;
-          
-          // Update UI
-          updateOptionSelection(questionId, optionId, true);
-          
-          // Recalculate visible questions based on new answer
-          calcVisibleQuestions();
-          
-          // Auto advance to next question
-          setTimeout(() => {
-            goToNextQuestion();
-          }, 300);
-        }
-      });
-    });
-    
     // Set up next buttons for each question
     state.questions.forEach(question => {
-      const nextButton = document.getElementById(\`next-button-\${question.id}\`);
+      const nextButton = document.getElementById(\`${prefix}next-button-\${question.id}\`);
       if (nextButton) {
         nextButton.addEventListener('click', goToNextQuestion);
       }
     });
     
     // Set up info buttons to show tooltips on mobile
-    document.querySelectorAll('.info-icon').forEach(infoBtn => {
+    document.querySelectorAll('.${prefix}info-icon').forEach(infoBtn => {
       infoBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         const optionId = this.parentElement.dataset.optionId;
-        const tooltip = document.getElementById(\`tooltip-\${optionId}\`);
+        const tooltip = document.getElementById(\`${prefix}tooltip-\${optionId}\`);
         
         // Toggle tooltip visibility
         if (tooltip.style.display === 'block') {
           tooltip.style.display = 'none';
         } else {
           // Hide all other tooltips first
-          document.querySelectorAll('.info-tooltip').forEach(t => {
+          document.querySelectorAll('.${prefix}info-tooltip').forEach(t => {
             t.style.display = 'none';
           });
           
@@ -780,17 +703,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Close tooltips when clicking outside
     document.addEventListener('click', function(e) {
-      if (!e.target.closest('.info-button')) {
-        document.querySelectorAll('.info-tooltip').forEach(tooltip => {
+      if (!e.target.closest('.${prefix}info-button')) {
+        document.querySelectorAll('.${prefix}info-tooltip').forEach(tooltip => {
           tooltip.style.display = 'none';
         });
       }
     });
     
     // Set up text input handlers
-    document.querySelectorAll('.text-input').forEach(input => {
+    document.querySelectorAll('.${prefix}text-input').forEach(input => {
       input.addEventListener('input', function() {
-        const questionId = this.id.replace('input-', '');
+        const questionId = this.id.replace('${prefix}input-', '');
         state.answers[questionId] = this.value;
         
         // Recalculate visible questions whenever text input changes
@@ -826,19 +749,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function updateOptionSelection(questionId, selectedOptionId, isSingleChoice) {
-    // Update desktop options
-    const options = document.querySelectorAll(\`.option[data-question-id="\${questionId}"]\`);
-    options.forEach(opt => {
-      if (opt.dataset.optionId === selectedOptionId) {
-        opt.classList.add('selected');
-      } else if (isSingleChoice) {
-        opt.classList.remove('selected');
-      }
-    });
-    
-    // Update mobile options
-    const mobileOptions = document.querySelectorAll(\`.mobile-option[data-question-id="\${questionId}"]\`);
-    mobileOptions.forEach(opt => {
+    // Update options
+    document.querySelectorAll(\`.${prefix}option[data-question-id="\${questionId}"]\`).forEach(opt => {
       if (opt.dataset.optionId === selectedOptionId) {
         opt.classList.add('selected');
       } else if (isSingleChoice) {
@@ -850,17 +762,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateMultipleChoiceSelection(questionId) {
     const selectedOptions = state.answers[questionId] || [];
     
-    // Update desktop options
-    document.querySelectorAll(\`.multiple-option[data-question-id="\${questionId}"]\`).forEach(opt => {
-      if (selectedOptions.includes(opt.dataset.optionId)) {
-        opt.classList.add('selected');
-      } else {
-        opt.classList.remove('selected');
-      }
-    });
-    
-    // Update mobile options
-    document.querySelectorAll(\`.mobile-option[data-question-id="\${questionId}"]\`).forEach(opt => {
+    // Update multiple choice options
+    document.querySelectorAll(\`.${prefix}multiple-option[data-question-id="\${questionId}"]\`).forEach(opt => {
       if (selectedOptions.includes(opt.dataset.optionId)) {
         opt.classList.add('selected');
       } else {
@@ -871,12 +774,12 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function updateView() {
     // Hide all questions
-    document.querySelectorAll('.question').forEach(q => {
+    document.querySelectorAll('.${prefix}question').forEach(q => {
       q.style.display = 'none';
     });
     
     if (state.currentQuestionIndex === null) {
-      document.getElementById('thank-you-screen').style.display = 'block';
+      document.getElementById('${prefix}thank-you-screen').style.display = 'block';
       formNavigation.style.display = 'none';
       return;
     }
@@ -884,21 +787,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show current question
     const currentQuestionId = state.questions[state.currentQuestionIndex].id;
     const currentQuestion = state.questions[state.currentQuestionIndex];
-    document.getElementById(\`question-\${currentQuestionId}\`).style.display = 'flex';
+    document.getElementById(\`${prefix}question-\${currentQuestionId}\`).style.display = 'flex';
     
     // Update navigation buttons
     backButton.disabled = state.currentQuestionIndex === 0;
     
     // Update next buttons text and visibility
     state.questions.forEach(question => {
-      const nextBtn = document.getElementById(\`next-button-\${question.id}\`);
+      const nextBtn = document.getElementById(\`${prefix}next-button-\${question.id}\`);
       if (nextBtn) {
         // Show submit text on the last question
         const isLastQuestion = activeQuestionIds.indexOf(question.id) === activeQuestionIds.length - 1;
         if (isLastQuestion) {
-          nextBtn.innerHTML = 'Submit <span class="next-icon">→</span>';
+          nextBtn.innerHTML = 'Submit <span class="${prefix}next-icon">→</span>';
         } else {
-          nextBtn.innerHTML = 'Next <span class="next-icon">→</span>';
+          nextBtn.innerHTML = 'Next <span class="${prefix}next-icon">→</span>';
         }
       }
     });
@@ -922,7 +825,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (state.currentQuestionIndex === null) return;
     
     const currentQuestion = state.questions[state.currentQuestionIndex];
-    const nextButton = document.getElementById(\`next-button-\${currentQuestion.id}\`);
+    const nextButton = document.getElementById(\`${prefix}next-button-\${currentQuestion.id}\`);
     
     if (!nextButton) return;
     
@@ -1083,12 +986,12 @@ document.addEventListener('DOMContentLoaded', function() {
     state.answers = {};
     
     // Reset selections
-    document.querySelectorAll('.option, .mobile-option').forEach(opt => {
+    document.querySelectorAll('.${prefix}option').forEach(opt => {
       opt.classList.remove('selected');
     });
     
     // Reset text inputs
-    document.querySelectorAll('.text-input').forEach(input => {
+    document.querySelectorAll('.${prefix}text-input').forEach(input => {
       input.value = '';
     });
     
@@ -1285,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </CardContent>
       </Card>
       
-      <div className="text-sm text-muted-foreground">
+      <div className="text-sm text-muted-foreground p-5">
         <p>
           The generated code includes a responsive, mobile-friendly form with conditional logic and form validation.
           Simply copy or download the code and add it to your website.

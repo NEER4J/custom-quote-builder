@@ -254,89 +254,6 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
     );
   };
 
-  // Render an option's content
-  const renderOptionContent = (option: Option) => {
-    // Check if it has an icon URL
-    const hasIcon = option.icon && isImageUrl(option.icon);
-    
-    return (
-      <div className="flex flex-col sm:flex-col items-center w-full h-full">
-        {hasIcon && (
-          <div className="mb-3 w-full flex justify-center">
-            <img 
-              src={option.icon} 
-              alt={option.text} 
-              className="object-contain h-16 sm:h-20 w-full"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/png?text=Error';
-              }}
-            />
-          </div>
-        )}
-        <span className="text-center font-medium">{option.text}</span>
-      </div>
-    );
-  };
-
-  // Horizontal layout for mobile
-  const renderMobileOptionLayout = (option: Option, isSelected: boolean, onClick: () => void) => {
-    // Check if it has an icon URL
-    const hasIcon = option.icon && isImageUrl(option.icon);
-    
-    return (
-      <div
-        className={cn(
-          "relative rounded-lg shadow-sm p-3 cursor-pointer transition-all hover:scale-105 flex items-center justify-center h-full bg-white",
-          isSelected ? "border-2 border-accent" : "border border-transparent"
-        )}
-        onClick={onClick}
-      >
-        {option.description && (
-          <div className="absolute top-2 left-2 z-10" ref={infoButtonRef}>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="p-0 h-auto" 
-              onClick={(e) => {
-                e.stopPropagation();
-                setMobileInfoVisible(mobileInfoVisible === option.id ? null : option.id);
-              }}
-            >
-              <InfoIcon className="h-4 w-4 text-muted-foreground" />
-            </Button>
-            {mobileInfoVisible === option.id && (
-              <div className="absolute mt-2 p-2 text-xs bg-muted rounded-md z-10 max-w-[200px] left-0 shadow-md">
-                {option.description}
-              </div>
-            )}
-          </div>
-        )}
-        
-        {isSelected && (
-          <div className="absolute top-2 right-2 h-5 w-5 rounded-full">
-            <CheckIcon className="h-4 w-4 text-accent" />
-          </div>
-        )}
-        
-        <div className="flex items-center justify-center gap-3 w-full">
-          {hasIcon && (
-            <div className="w-16 flex-shrink-0">
-              <img 
-                src={option.icon} 
-                alt={option.text} 
-                className="object-contain h-14 w-full"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/png?text=Error';
-                }}
-              />
-            </div>
-          )}
-          <span className="font-medium text-center">{option.text}</span>
-        </div>
-      </div>
-    );
-  };
-
   // Render the current question with responsive design
   const renderQuestion = () => {
     if (currentQuestionIndex === null || !formState.questions[currentQuestionIndex]) {
@@ -363,21 +280,82 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
           )}
         </div>
         
-        {/* Possible answers - Responsive grid/list based on screen size */}
+        {/* Possible answers - Responsive grid layout */}
         <div className="space-y-3 px-1 sm:px-2">
-          {/* Render for single choice questions - Desktop */}
+          {/* Render for single choice questions */}
           {currentQuestion.type === "single_choice" && currentQuestion.options && (
-            <>
-              {/* Desktop grid view */}
-              <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {currentQuestion.options.map((option) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 justify-items-center">
+              {currentQuestion.options.map((option) => (
+                <div
+                  key={option.id}
+                  className={cn(
+                    "w-full transition-all relative rounded-lg p-4 cursor-pointer hover:scale-105 flex flex-row sm:flex-col items-center sm:items-center justify-start sm:justify-center h-full bg-white",
+                    currentAnswer === option.id ? "border-2 border-accent" : "border border-transparent"
+                  )}
+                  onClick={() => handleQuestionResponse(currentQuestion.id, option.id, true)}
+                >
+                  {option.description && (
+                    <div className="absolute top-2 left-2 z-10" ref={infoButtonRef}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="p-0 h-auto" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMobileInfoVisible(mobileInfoVisible === option.id ? null : option.id);
+                        }}
+                      >
+                        <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      {mobileInfoVisible === option.id && (
+                        <div className="absolute mt-2 p-2 text-xs bg-muted rounded-md z-10 max-w-[200px] left-0 shadow-md" style={{width: 'max-content'}}>
+                          {option.description}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex flex-row sm:flex-col items-center justify-start sm:justify-center gap-4 sm:gap-0 w-full h-full">
+                    {option.icon && isImageUrl(option.icon) && (
+                      <div className="w-14 sm:w-full sm:mb-3 flex-shrink-0 flex justify-center">
+                        <img 
+                          src={option.icon} 
+                          alt={option.text} 
+                          className="object-contain h-14 sm:h-20 w-auto"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/png?text=Error';
+                          }}
+                        />
+                      </div>
+                    )}
+                    <span className="text-left sm:text-center font-medium">{option.text}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Render for multiple choice questions */}
+          {currentQuestion.type === "multiple_choice" && currentQuestion.options && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 justify-items-center">
+              {currentQuestion.options.map((option) => {
+                const isSelected = Array.isArray(currentAnswer) && currentAnswer.includes(option.id);
+                
+                return (
                   <div
                     key={option.id}
                     className={cn(
-                      "transition-all relative rounded-lg p-4 cursor-pointer transition-all hover:scale-105 flex flex-col items-center justify-between h-full bg-white",
-                      currentAnswer === option.id ? "border-2 border-accent" : "border border-transparent"
+                      "w-full relative rounded-lg shadow-sm p-4 cursor-pointer transition-all hover:scale-105 flex flex-row sm:flex-col items-center sm:items-center justify-start sm:justify-center h-full bg-white",
+                      isSelected ? "border-2 border-accent" : "border border-transparent"
                     )}
-                    onClick={() => handleQuestionResponse(currentQuestion.id, option.id, true)}
+                    onClick={() => {
+                      const currentAnswerArray = Array.isArray(currentAnswer) ? currentAnswer : [];
+                      const updatedAnswer = isSelected
+                        ? currentAnswerArray.filter(id => id !== option.id)
+                        : [...currentAnswerArray, option.id];
+                      
+                      handleQuestionResponse(currentQuestion.id, updatedAnswer);
+                    }}
                   >
                     {option.description && (
                       <div className="absolute top-2 left-2 z-10" ref={infoButtonRef}>
@@ -393,112 +371,38 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
                           <InfoIcon className="h-4 w-4 text-muted-foreground" />
                         </Button>
                         {mobileInfoVisible === option.id && (
-                          <div className="absolute mt-2 p-2 text-xs bg-muted rounded-md z-10 max-w-[200px] left-0 shadow-md" style={{width: 'max-content'}}>
+                          <div className="absolute mt-2 p-2 text-xs bg-muted rounded-md z-10 max-w-[200px] left-0 shadow-md">
                             {option.description}
                           </div>
                         )}
                       </div>
                     )}
-                    {renderOptionContent(option)}
-                  </div>
-                ))}
-              </div>
-              
-              {/* Mobile list view */}
-              <div className="block sm:hidden space-y-2">
-                {currentQuestion.options.map((option) => (
-                  <div key={option.id}>
-                    {renderMobileOptionLayout(
-                      option,
-                      currentAnswer === option.id,
-                      () => handleQuestionResponse(currentQuestion.id, option.id, true)
-                    )}
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-          
-          {/* Render for multiple choice questions */}
-          {currentQuestion.type === "multiple_choice" && currentQuestion.options && (
-            <>
-              {/* Desktop grid view */}
-              <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {currentQuestion.options.map((option) => {
-                  const isSelected = Array.isArray(currentAnswer) && currentAnswer.includes(option.id);
-                  
-                  return (
-                    <div
-                      key={option.id}
-                      className={cn(
-                        "relative rounded-lg shadow-sm p-4 cursor-pointer transition-all hover:scale-105 flex flex-col items-center justify-between h-full bg-white",
-                        isSelected ? "border-2 border-accent" : "border border-transparent"
-                      )}
-                      onClick={() => {
-                        const currentAnswerArray = Array.isArray(currentAnswer) ? currentAnswer : [];
-                        const updatedAnswer = isSelected
-                          ? currentAnswerArray.filter(id => id !== option.id)
-                          : [...currentAnswerArray, option.id];
-                        
-                        handleQuestionResponse(currentQuestion.id, updatedAnswer);
-                      }}
-                    >
-                      {option.description && (
-                        <div className="absolute top-2 left-2 z-10" ref={infoButtonRef}>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="p-0 h-auto" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMobileInfoVisible(mobileInfoVisible === option.id ? null : option.id);
+                    <div className={cn(
+                      "absolute top-2 right-2 h-5 w-5 rounded-md border-2 flex items-center justify-center",
+                      isSelected ? "border-accent" : "border-muted-foreground"
+                    )}>
+                      {isSelected && <CheckIcon className="h-3 w-3 text-accent" />}
+                    </div>
+                    
+                    <div className="flex flex-row sm:flex-col items-center justify-start sm:justify-center gap-4 sm:gap-0 w-full h-full">
+                      {option.icon && isImageUrl(option.icon) && (
+                        <div className="w-14 sm:w-full sm:mb-3 flex-shrink-0 flex justify-center">
+                          <img 
+                            src={option.icon} 
+                            alt={option.text} 
+                            className="object-contain h-14 sm:h-20 w-auto"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/png?text=Error';
                             }}
-                          >
-                            <InfoIcon className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                          {mobileInfoVisible === option.id && (
-                            <div className="absolute mt-2 p-2 text-xs bg-muted rounded-md z-10 max-w-[200px] left-0 shadow-md">
-                              {option.description}
-                            </div>
-                          )}
+                          />
                         </div>
                       )}
-                      <div className={cn(
-                        "absolute top-2 right-2 h-5 w-5 rounded-md border-2 flex items-center justify-center",
-                        isSelected ? "border-accent" : "border-muted-foreground"
-                      )}>
-                        {isSelected && <CheckIcon className="h-3 w-3 text-accent" />}
-                      </div>
-                      {renderOptionContent(option)}
+                      <span className="text-left sm:text-center font-medium">{option.text}</span>
                     </div>
-                  );
-                })}
-              </div>
-              
-              {/* Mobile list view */}
-              <div className="block sm:hidden space-y-2">
-                {currentQuestion.options.map((option) => {
-                  const isSelected = Array.isArray(currentAnswer) && currentAnswer.includes(option.id);
-                  
-                  return (
-                    <div key={option.id}>
-                      {renderMobileOptionLayout(
-                        option,
-                        isSelected,
-                        () => {
-                          const currentAnswerArray = Array.isArray(currentAnswer) ? currentAnswer : [];
-                          const updatedAnswer = isSelected
-                            ? currentAnswerArray.filter(id => id !== option.id)
-                            : [...currentAnswerArray, option.id];
-                          
-                          handleQuestionResponse(currentQuestion.id, updatedAnswer);
-                        }
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </>
+                  </div>
+                );
+              })}
+            </div>
           )}
           
           {/* Render for text input questions */}
@@ -554,7 +458,10 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
             variant="ghost"
             onClick={goToPreviousQuestion}
             disabled={currentQuestionIndex === 0}
-            className="rounded-lg gap-1"
+            className={cn(
+              "rounded-lg gap-1",
+              "hover:bg-accent hover:text-accent-foreground transition-colors"
+            )}
           >
             <ChevronLeft className="h-4 w-4" />
             Back
