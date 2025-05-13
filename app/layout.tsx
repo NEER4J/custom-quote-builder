@@ -54,11 +54,11 @@ export default function RootLayout({
                     </span>
                   </Link>
                   <nav className="hidden gap-6 md:flex">
-                    <Link href="/protected/dashboard" className="group flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                    <Link href="/dashboard" className="group flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
                       <span>Dashboard</span>
                       <span className="block max-w-0 group-hover:max-w-full transition-all duration-300 h-0.5 bg-accent mt-0.5"></span>
                     </Link>
-                    <Link href="/protected/form-builder" className="group flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                    <Link href="/form-builder" className="group flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
                       <span>Create Form</span>
                       <span className="block max-w-0 group-hover:max-w-full transition-all duration-300 h-0.5 bg-accent mt-0.5"></span>
                     </Link>
@@ -70,7 +70,7 @@ export default function RootLayout({
                 </div>
               </div>
             </header>
-            <div className="flex-1 animate-fade-in mx-auto w-full max-w-[2000px] p-4 sm:p-6 md:p-8">
+            <div className="flex-1 animate-fade-in mx-auto w-full max-w-[2000px] p-4 sm:p-6 md:p-8 justify-center items-center flex">
               {children}
             </div>
             <footer className="border-t py-6 md:py-0">
@@ -79,15 +79,7 @@ export default function RootLayout({
                   &copy; {new Date().getFullYear()} <span className="text-accent">Quote</span>Builder. All rights reserved.
                 </p>
                 <div className="flex items-center space-x-4">
-                  <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Privacy
-                  </Link>
-                  <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Terms
-                  </Link>
-                  <Link href="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Contact
-                  </Link>
+                  <p>Developed by <Link href="http://webuildtrades.com/" target="_blank" className="text-accent cursor-pointer text-blue-500">We Build Trades</Link></p>
                 </div>
               </div>
             </footer>

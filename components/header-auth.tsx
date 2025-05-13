@@ -14,7 +14,7 @@ export default async function AuthButton() {
   return user ? (
     <div className="flex items-center gap-3">
       <Link 
-        href="/protected/dashboard" 
+        href="/dashboard" 
         className="group flex items-center gap-2 rounded-full bg-secondary/40 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary"
       >
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-accent">
@@ -29,7 +29,7 @@ export default async function AuthButton() {
           type="submit" 
           variant="ghost" 
           size="icon"
-          className="h-8 w-8 rounded-full hover:bg-secondary/80"
+          className="h-8 w-8 rounded-full"
           title="Sign out"
         >
           <LogOut className="h-4 w-4" />
@@ -46,9 +46,8 @@ export default async function AuthButton() {
         asChild 
         size="sm" 
         variant="default" 
-        className="rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm shadow-accent/25"
+        className="rounded-full bg-accent hover:bg-accent/90 text-accent-foreground  shadow-accent/25"
       >
-        <Link href="/sign-up">Sign up</Link>
       </Button>
     </div>
   );

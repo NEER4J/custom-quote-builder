@@ -167,7 +167,7 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
 
   return (
     <div className="flex flex-col gap-8">
-      <Card className="border border-zinc-200 dark:border-zinc-800 shadow-sm">
+      <Card className="border border-zinc-200 dark:border-zinc-800 ">
         <CardHeader className="pb-4">
           <CardTitle className="text-xl tracking-tight">Form Details</CardTitle>
           <CardDescription className="text-zinc-500 dark:text-zinc-400">Define the basic information for your quote form</CardDescription>
@@ -250,7 +250,7 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1">
-                <Card className="border border-zinc-200 dark:border-zinc-800 shadow-sm h-full">
+                <Card className="border border-zinc-200 dark:border-zinc-800  h-full">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg tracking-tight">Questions</CardTitle>
                     <CardDescription className="text-zinc-500 dark:text-zinc-400">
@@ -332,7 +332,7 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
               </div>
 
               <div className="lg:col-span-2">
-                <Card className="border border-zinc-200 dark:border-zinc-800 shadow-sm h-full">
+                <Card className="border border-zinc-200 dark:border-zinc-800  h-full">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg tracking-tight">
                       {selectedQuestionIndex !== null ? "Edit Question" : "Question Editor"}
@@ -370,7 +370,7 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
         </TabsContent>
         
         <TabsContent value="settings" className="mt-6 animate-fade-in">
-          <Card className="border border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <Card className="border border-zinc-200 dark:border-zinc-800 ">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg tracking-tight">Form Settings</CardTitle>
               <CardDescription className="text-zinc-500 dark:text-zinc-400">

@@ -83,7 +83,7 @@ export async function POST(
     }
 
     return NextResponse.redirect(
-      new URL(`/protected/form-builder?id=${formId}`, request.url)
+      new URL(`/form-builder?id=${formId}`, request.url)
     );
   } catch (error) {
     console.error("Error restoring form version:", error);

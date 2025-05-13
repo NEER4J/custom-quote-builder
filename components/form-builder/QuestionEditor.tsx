@@ -258,7 +258,7 @@ const QuestionEditor = ({
         </TabsList>
         
         <TabsContent value="basic" className="space-y-4 animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg shadow-sm">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg ">
             <h3 className="text-md font-medium mb-3">Question Information</h3>
             
             <div className="grid gap-3">
@@ -295,7 +295,7 @@ const QuestionEditor = ({
             </div>
           </div>
           
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg shadow-sm">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg ">
             <h3 className="text-md font-medium mb-3">Question Type</h3>
             
             <RadioGroup 
@@ -324,7 +324,7 @@ const QuestionEditor = ({
           </div>
           
           {(question.type === "multiple_choice" || question.type === "single_choice") && (
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg shadow-sm">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg ">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-md font-medium">Answer Options</h3>
                 
@@ -363,7 +363,7 @@ const QuestionEditor = ({
                 {question.options?.map((option, index) => (
                   <div 
                     key={option.id} 
-                    className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md p-2 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+                    className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md p-2  hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
                   >
                     <div className="grid grid-cols-12 gap-2">
                       <div className="col-span-5">
@@ -444,7 +444,7 @@ const QuestionEditor = ({
         </TabsContent>
         
         <TabsContent value="logic" className="animate-fade-in">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-3 shadow-sm">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-3 ">
             <div>
               <div className="flex justify-between items-center mb-3">
                 <div>
@@ -489,7 +489,7 @@ const QuestionEditor = ({
                   
                   <div className="overflow-y-auto pr-1 space-y-3">
                     {question.conditions?.map((condition, index) => (
-                      <div key={index} className="bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-md p-3 relative shadow-sm">
+                      <div key={index} className="bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-md p-3 relative ">
                         <div className="absolute top-2 right-2 text-red-500">
                           <Button
                             variant="ghost"

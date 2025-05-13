@@ -30,13 +30,13 @@ export default async function Home() {
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button size="lg" className="group rounded-full shadow-lg shadow-accent/20 bg-accent hover:bg-accent/90 text-accent-foreground" asChild>
-                  <Link href="/protected/form-builder">
+                  <Link href="/form-builder">
                     Create a Quote Form
                     <ArrowRightIcon size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" className="rounded-full" asChild>
-                  <Link href="/protected/dashboard">View Your Forms</Link>
+                  <Link href="/dashboard">View Your Forms</Link>
                 </Button>
               </div>
             </div>
@@ -196,15 +196,7 @@ export default async function Home() {
                 Create your first interactive quote form in minutes with no coding required.
               </p>
             </div>
-            <div className="w-full max-w-sm space-y-4">
-              <Button size="lg" className="w-full group gap-1 rounded-full shadow-lg shadow-accent/20 bg-accent hover:bg-accent/90 text-accent-foreground" asChild>
-                <Link href="/sign-up">
-                  Sign Up for Free
-                  <MoveRightIcon size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
-              <p className="text-sm text-muted-foreground">No credit card required. Free plan available.</p>
-            </div>
+            
           </div>
         </div>
       </section>

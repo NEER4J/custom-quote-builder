@@ -32,7 +32,7 @@ export default async function FormVersionPreviewPage({
   // Verify ownership or collaboration permissions
   if (form.user_id !== user.id) {
     // Check if user is a collaborator (if you implement collaboration feature)
-    return redirect("/protected/dashboard");
+    return redirect("/dashboard");
   }
 
   // Get the specific version
@@ -73,7 +73,7 @@ export default async function FormVersionPreviewPage({
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href={`/protected/form-versions/${params.formId}`}>
+          <Link href={`/form-versions/${params.formId}`}>
             <Button variant="outline">Back to History</Button>
           </Link>
           <form action={`/api/forms/${params.formId}/restore/${params.versionId}`} method="POST">

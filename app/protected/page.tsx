@@ -28,7 +28,7 @@ export default async function ProtectedPage() {
         <h2 className="font-bold text-2xl">Get Started</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link 
-            href="/protected/form-builder" 
+            href="/form-builder" 
             className="p-6 border rounded-lg hover:bg-accent transition-colors flex flex-col gap-2"
           >
             <h3 className="font-semibold text-xl">Create Quote Form</h3>

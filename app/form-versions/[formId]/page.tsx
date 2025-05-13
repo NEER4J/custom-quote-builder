@@ -46,7 +46,7 @@ export default async function FormVersionsPage({
       <div className="flex justify-between items-center mb-8">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/protected/dashboard">
+            <Link href="/dashboard">
               <Button variant="ghost" size="sm" className="gap-1">
                 <ArrowLeftIcon size={14} />
                 Back
@@ -56,7 +56,7 @@ export default async function FormVersionsPage({
           </div>
           <p className="text-muted-foreground">{form.description}</p>
         </div>
-        <Link href={`/protected/form-builder?id=${formId}`}>
+        <Link href={`/form-builder?id=${formId}`}>
           <Button variant="outline">Edit Form</Button>
         </Link>
       </div>
@@ -93,7 +93,7 @@ export default async function FormVersionsPage({
                 </div>
               </div>
               <div className="flex gap-2">
-                <Link href={`/protected/form-preview/${formId}/${version.id}`}>
+                <Link href={`/form-preview/${formId}/${version.id}`}>
                   <Button variant="outline" size="sm" className="gap-1">
                     <EyeIcon size={14} />
                     Preview

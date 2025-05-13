@@ -25,7 +25,7 @@ export default async function DashboardPage() {
     <div className="container py-10 mx-auto animate-slide-up">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Your Forms</h1>
-        <Link href="/protected/form-builder">
+        <Link href="/form-builder">
           <Button className="gap-1">
             <PlusIcon size={16} />
             New Form
@@ -44,7 +44,7 @@ export default async function DashboardPage() {
                 <div>
                   <h2 className="font-semibold text-xl">
                     <Link 
-                      href={`/protected/form-builder?id=${form.id}`}
+                      href={`/form-builder?id=${form.id}`}
                       className="hover:underline underline-offset-4"
                     >
                       {form.title}
@@ -61,13 +61,13 @@ export default async function DashboardPage() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Link href={`/protected/form-versions/${form.id}`}>
+                  <Link href={`/form-versions/${form.id}`}>
                     <Button variant="outline" size="sm" className="flex items-center gap-1">
                       <ClockIcon size={14} />
                       History
                     </Button>
                   </Link>
-                  <Link href={`/protected/form-builder?id=${form.id}`}>
+                  <Link href={`/form-builder?id=${form.id}`}>
                     <Button variant="outline" size="sm" className="flex items-center gap-1">
                       <PencilIcon size={14} />
                       Edit
@@ -85,7 +85,7 @@ export default async function DashboardPage() {
             <p className="text-muted-foreground mb-6">
               Create your first form to get started with Quote Builder.
             </p>
-            <Link href="/protected/form-builder">
+            <Link href="/form-builder">
               <Button className="gap-1">
                 <PlusIcon size={16} />
                 Create Your First Form

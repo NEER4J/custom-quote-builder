@@ -38,12 +38,13 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<"design" | "preview" | "export">("design");
+  const [activeTab, setActiveTab] = useState<"design" | "export">("design");
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
 
   // Load form if editing
   useEffect(() => {
@@ -140,7 +141,7 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
             created_by: userId,
             commit_message: "Initial version",
           });
-          router.replace(`/protected/form-builder?id=${data.id}`);
+          router.replace(`/form-builder?id=${data.id}`);
         }
       }
       setSuccess(true);
@@ -236,7 +237,7 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
 
   return (
     <div className="mx-auto w-full max-w-screen-xl animate-fade-in">
-      <div className="mb-8 rounded-lg bg-card border p-6 card-shadow-hover transition-all">
+      <div className="mb-8 rounded-lg bg-card card-shadow-hover transition-all">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div className="flex-1">
             {editingTitle ? (
@@ -287,16 +288,24 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
           <div className="flex gap-2 mt-1">
             <Button 
               variant="outline" 
-              onClick={() => router.push("/protected/dashboard")}
+              onClick={() => router.push("/dashboard")}
               className="rounded-lg"
             >
               Cancel
             </Button>
             <Button 
+              variant="outline"
+              onClick={() => setPreviewDialogOpen(true)}
+              className="rounded-lg"
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Preview
+            </Button>
+            <Button 
               variant="default"
               onClick={handleSave} 
               disabled={loading}
-              className={`rounded-lg shadow-sm relative overflow-hidden ${success ? 'bg-green-600 border-green-600 hover:bg-green-700' : 'bg-accent text-accent-foreground'}`}
+              className={`rounded-lg  relative overflow-hidden ${success ? 'bg-green-600 border-green-600 hover:bg-green-700' : 'bg-accent text-accent-foreground'}`}
             >
               {loading ? (
                 "Saving..."
@@ -331,10 +340,6 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
               <Settings className="mr-2 h-4 w-4" />
               Design
             </TabsTrigger>
-            <TabsTrigger value="preview" className="px-6 py-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-md">
-              <Eye className="mr-2 h-4 w-4" />
-              Preview
-            </TabsTrigger>
             <TabsTrigger value="export" className="px-6 py-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-md">
               <FileCode className="mr-2 h-4 w-4" />
               Export
@@ -351,7 +356,7 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
                   <h2 className="text-xl font-semibold">Questions</h2>
                   <Button 
                     onClick={addNewQuestion} 
-                    className="rounded-lg transition-all bg-accent text-accent-foreground shadow-sm shadow-accent/20"
+                    className="rounded-lg transition-all bg-accent text-accent-foreground  shadow-accent/20"
                   >
                     <PlusIcon className="mr-2 h-4 w-4" /> 
                     Add Question
@@ -462,20 +467,6 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
           </div>
         </TabsContent>
         
-        <TabsContent value="preview" className="p-0 border-none">
-          <div className="rounded-xl border bg-card p-8 space-y-6 card-shadow">
-            {/* <div className="text-center max-w-lg mx-auto">
-              <h2 className="text-xl font-semibold mb-2">Form Preview</h2>
-              <p className="text-muted-foreground">
-                This is how your form will appear to users. Test the flow by answering questions.
-              </p>
-            </div> */}
-            <div className=" mx-auto">
-              <FormPreview formState={formState} />
-            </div>
-          </div>
-        </TabsContent>
-        
         <TabsContent value="export" className="p-0 border-none">
           <div className="rounded-xl border bg-card p-8 space-y-6 card-shadow">
             <div className="text-center max-w-lg mx-auto">
@@ -488,6 +479,20 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
           </div>
         </TabsContent>
       </Tabs>
+      
+      {/* Preview Dialog */}
+      <Dialog open={previewDialogOpen} onOpenChange={(open) => {
+        setPreviewDialogOpen(open);
+        if (!open) {
+          setActiveTab("design");
+        }
+      }}>
+        <DialogContent className="bg-gray-100 max-w-full w-[98vw] h-[96vh] p-4" style={{borderRadius: '0px'}}>
+          <div className="h-full">
+            <FormPreview formState={formState} />
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Edit Question Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

@@ -15,13 +15,7 @@ export default async function FormBuilderPage() {
   }
 
   return (
-    <div className="flex-1 w-full flex flex-col max-w-7xl mx-auto gap-6 dark:bg-black">
-      <div className="w-full border-b border-zinc-200 dark:border-zinc-800 pb-6 mb-2">
-        <h1 className="text-3xl font-semibold tracking-tight mb-2">Quote Form Builder</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Create customizable quote forms and export the code to use on your website.
-        </p>
-      </div>
+    <div className="flex-1 w-full flex flex-col max-w-7xl mx-auto gap-6">
       <FormBuilderComponent userId={user.id} />
     </div>
   );
