@@ -43,6 +43,10 @@ ${generateCSS(prefix)}
     </style>` 
     : '<link rel="stylesheet" href="form-styles.css">'
   }
+  ${formState.questions.some(q => q.type === "address" && q.postcodeApi === "postcodes4u")
+    ? '<script type="text/javascript" src="http://www.postcodes4u.co.uk/postcodes4u.js"></script>'
+    : ''
+  }
 </head>
 <body style="background-color: ${formState.settings.backgroundColor}">
   <div class="${prefix}container">
@@ -65,6 +69,72 @@ ${generateCSS(prefix)}
               ? `<div class="${prefix}text-input-container">
                   <input type="text" class="${prefix}text-input" id="${prefix}input-${question.id}" placeholder="Type your answer here..." ${question.required ? 'required' : ''} />
                 </div>`
+              : question.type === 'address'
+                ? `<div class="${prefix}address-container">
+                    ${question.postcodeApi === 'postcodes4u' 
+                      ? `<!-- Postcodes4u Integration -->
+                         <div class="${prefix}address-search" id="${prefix}address-search-${question.id}">
+                           <div id='postcodes4ukey' style='display: none;'>${formState.settings.postcodes4uProductKey || ''}</div>
+                           <div id='postcodes4uuser' style='display: none;'>${formState.settings.postcodes4uUsername || ''}</div>
+
+                           <div class="${prefix}postcode-input-wrapper">
+                             <div class="${prefix}postcode-search-container">
+                               <input type="text" value="" id="postcode" placeholder="Enter postcode" class="${prefix}postcode-input" />
+                               <button onclick="SearchBegin();return false;" 
+                                 class="${prefix}search-button" id="${prefix}search-${question.id}" 
+                                 style="background-color: ${formState.settings.buttonColor}">
+                                 <span class="${prefix}search-icon">🔍</span> Find
+                               </button>
+                             </div>
+                           </div>
+                           <select id="dropdown" style='display:none;' onchange="SearchIdBegin()" class="${prefix}address-dropdown">
+                             <option>Select an address:</option>
+                           </select>
+                           <div class="${prefix}address-display" id="${prefix}postcodes4u-results-${question.id}">
+                             <div class="${prefix}postcode-fields">
+                               <input type="hidden" id="address-data-${question.id}" />
+                               <div class="input-row">
+                                 <input type="text" value="" id="company" placeholder="Company" style="display:none;" />
+                               </div>
+                               <div class="input-row">
+                                 <input type="text" value="" id="address1" placeholder="Address Line 1" style="display:none;" />
+                               </div>
+                               <div class="input-row">
+                                 <input type="text" value="" id="address2" placeholder="Address Line 2" style="display:none;" />
+                               </div>
+                               <div class="input-row">
+                                 <input type="text" value="" id="town" placeholder="Town" style="display:none;" />
+                               </div>
+                               <div class="input-row">
+                                 <input type="text" value="" id="county" placeholder="County" style="display:none;" />
+                               </div>
+                             </div>
+                           </div>
+                         </div>`
+                      : `<!-- Custom API Integration -->
+                         <div class="${prefix}address-search" id="${prefix}address-search-${question.id}">
+                           <div class="${prefix}postcode-input-wrapper">
+                             <div class="${prefix}postcode-search-container">
+                               <input type="text" class="${prefix}postcode-input" id="${prefix}postcode-${question.id}" placeholder="Enter postcode" />
+                               <button class="${prefix}search-button" id="${prefix}search-${question.id}" style="background-color: ${formState.settings.buttonColor}">
+                                 <span class="${prefix}search-icon">🔍</span> Find
+                               </button>
+                             </div>
+                           </div>
+                           <div class="${prefix}postcode-error" id="${prefix}error-${question.id}"></div>
+                           <div class="${prefix}address-results" id="${prefix}results-${question.id}"></div>
+                         </div>`
+                    }
+                    <div class="${prefix}selected-address" id="${prefix}selected-address-${question.id}" style="display: none;">
+                      <div class="${prefix}selected-address-content">
+                        <div class="${prefix}selected-address-info">
+                          <h4 class="${prefix}selected-address-title">Selected Address:</h4>
+                          <p class="${prefix}selected-address-text" id="${prefix}address-text-${question.id}"></p>
+                        </div>
+                        <button class="${prefix}change-address" id="${prefix}change-${question.id}">Change</button>
+                      </div>
+                    </div>
+                  </div>`
               : question.type === 'single_choice'
                 ? `<div class="${prefix}options-container">
                     <div class="${prefix}options-grid">
@@ -577,7 +647,191 @@ body{
 
 .${prefix}refresh-icon {
   font-size: 1rem;
-}`;
+}
+
+/* Address search styles */
+.${prefix}address-container {
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.${prefix}postcode-input-wrapper {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.${prefix}postcode-search-container {
+  display: flex;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.${prefix}postcode-input {
+  flex: 1;
+  border: none;
+  padding: 12px 16px;
+  font-size: 14px;
+  outline: none;
+  background-color: #fff;
+}
+
+.${prefix}search-button {
+  background-color: ${formState.settings.buttonColor};
+  border: none;
+  color: white;
+  padding: 0 16px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.${prefix}search-button:hover {
+  opacity: 0.9;
+}
+
+.${prefix}search-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.${prefix}search-icon {
+  font-size: 14px;
+}
+
+.${prefix}postcode-error {
+  color: #e74c3c;
+  font-size: 14px;
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: rgba(231, 76, 60, 0.1);
+  display: none;
+  border-left: 3px solid #e74c3c;
+}
+
+.${prefix}address-results {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  display: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+}
+
+.${prefix}address-dropdown {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  background-color: #fff;
+}
+
+.${prefix}address-results-header {
+  background-color: #f8fafc;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 1px solid #e2e8f0;
+  color: #64748b;
+}
+
+.${prefix}address-result-item {
+  padding: 12px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #e2e8f0;
+  transition: background-color 0.2s ease;
+}
+
+.${prefix}address-result-item:last-child {
+  border-bottom: none;
+}
+
+.${prefix}address-result-item:hover {
+  background-color: #f1f5f9;
+}
+
+.${prefix}selected-address {
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background-color: #f0f9ff;
+  padding: 16px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+}
+
+.${prefix}selected-address-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.${prefix}selected-address-info {
+  flex: 1;
+}
+
+.${prefix}selected-address-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+  color: #0f172a;
+}
+
+.${prefix}selected-address-text {
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.${prefix}change-address {
+  background: none;
+  border: none;
+  color: ${formState.settings.buttonColor};
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 12px;
+  margin-left: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.${prefix}change-address:hover {
+  background-color: rgba(${hexToRgb(formState.settings.buttonColor)}, 0.1);
+}
+
+.${prefix}loader {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: ${prefix}spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes ${prefix}spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+`;
   };
 
   // Generate JavaScript code
@@ -601,7 +855,10 @@ document.addEventListener('DOMContentLoaded', function() {
     questions: ${JSON.stringify(formState.questions)},
     conditions: ${conditionsJSON},
     submitUrl: "${formState.settings.submitUrl}",
-    zapierWebhookUrl: "${formState.settings.zapierWebhookUrl}"
+    zapierWebhookUrl: "${formState.settings.zapierWebhookUrl}",
+    customApiKey: "${formState.settings.customApiKey || ''}",
+    postcodes4uUsername: "${formState.settings.postcodes4uUsername || ''}",
+    postcodes4uProductKey: "${formState.settings.postcodes4uProductKey || ''}"
   };
 
   // DOM elements
@@ -732,6 +989,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Show first question
     updateView();
+
+    // Set up address question handlers
+    state.questions.forEach(question => {
+      if (question.type === 'address') {
+        setupAddressHandlers(question);
+      }
+    });
   }
   
   function calcVisibleQuestions() {
@@ -851,6 +1115,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (answer === undefined) return false;
     if (Array.isArray(answer)) return answer.length > 0;
     if (typeof answer === 'string') return answer.trim() !== '';
+    if (typeof answer === 'object') return answer !== null;
     return answer !== '';
   }
   
@@ -945,6 +1210,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (question.type === 'text_input') {
           // For text inputs, just use the value directly
           transformedAnswers[questionKey] = state.answers[questionId];
+        } else if (question.type === 'address') {
+          // For address questions, use static field names instead of question text
+          const addressData = state.answers[questionId];
+          if (addressData && typeof addressData === 'object') {
+            transformedAnswers['useraddress'] = addressData.fullAddress;
+            transformedAnswers['useraddress_building'] = addressData.buildingNumber;
+            transformedAnswers['useraddress_street'] = addressData.street;
+            transformedAnswers['useraddress_town'] = addressData.town;
+            transformedAnswers['useraddress_postcode'] = addressData.postcode;
+            
+            // Also add the question text as key for reference
+            // transformedAnswers[\`question_\${questionId}\`] = question.text;
+          }
         } else if (question.type === 'multiple_choice') {
           // For multiple choice, map the array of IDs to array of text values
           const answerIds = state.answers[questionId];
@@ -1003,6 +1281,319 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update view
     updateView();
+  }
+
+  // Setup address lookup handlers
+  function setupAddressHandlers(question) {
+    const searchButton = document.getElementById(\`${prefix}search-\${question.id}\`);
+    const postcodeInput = document.getElementById(\`${prefix}postcode-\${question.id}\`);
+    const errorElement = document.getElementById(\`${prefix}error-\${question.id}\`);
+    const resultsElement = document.getElementById(\`${prefix}results-\${question.id}\`);
+    const selectedAddressElement = document.getElementById(\`${prefix}selected-address-\${question.id}\`);
+    const selectedAddressText = document.getElementById(\`${prefix}address-text-\${question.id}\`);
+    const changeButton = document.getElementById(\`${prefix}change-\${question.id}\`);
+    
+    if (!searchButton && question.postcodeApi !== 'postcodes4u') return;
+    
+    // Add direct handler for Postcodes4u dropdown if needed
+    if (question.postcodeApi === 'postcodes4u') {
+      // Handle Postcodes4u dropdown change
+      const dropdown = document.getElementById('dropdown');
+      if (dropdown) {
+        dropdown.addEventListener('change', function() {
+          // Give a small delay for fields to be populated
+          setTimeout(() => {
+            const formattedAddress = {
+              fullAddress: (document.getElementById('address1')?.value || '') + 
+                (document.getElementById('address2')?.value ? ', ' + document.getElementById('address2')?.value : '') + 
+                (document.getElementById('town')?.value ? ', ' + document.getElementById('town')?.value : '') + 
+                (document.getElementById('county')?.value ? ', ' + document.getElementById('county')?.value : '') + 
+                (document.getElementById('postcode')?.value ? ', ' + document.getElementById('postcode')?.value : ''),
+              buildingNumber: document.getElementById('company')?.value || '',
+              street: document.getElementById('address1')?.value || '',
+              town: document.getElementById('town')?.value || '',
+              postcode: document.getElementById('postcode')?.value || ''
+            };
+            
+            // Update the UI
+            const searchElement = document.getElementById(\`${prefix}address-search-\${question.id}\`);
+            
+            if (selectedAddressElement && selectedAddressText && searchElement) {
+              selectedAddressText.textContent = formattedAddress.fullAddress;
+              searchElement.style.display = 'none';
+              selectedAddressElement.style.display = 'block';
+              
+              // Store in form state
+              state.answers[question.id] = formattedAddress;
+              
+              // Update navigation
+              calcVisibleQuestions();
+              updateNextButtonState();
+            }
+          }, 800); // Longer timeout to ensure fields are populated
+        });
+      }
+    }
+    
+    // Set up event listener for the search button
+    searchButton.addEventListener('click', async function() {
+      const postcode = postcodeInput.value.trim();
+      
+      if (!postcode) {
+        showError(errorElement, 'Please enter a postcode');
+        return;
+      }
+      
+      // Show loading state
+      searchButton.disabled = true;
+      const originalButtonText = searchButton.innerHTML;
+      searchButton.innerHTML = \`<span class="${prefix}loader"></span>Searching...\`;
+      
+      if (question.postcodeApi === 'postcodes4u') {
+        // Use the Postcodes4u API
+        postcodeInput.value = postcode;
+        try {
+          // Postcodes4u uses its own global function
+          if (typeof SearchBegin === 'function') {
+            // Handle the Postcodes4u form submission
+            SearchBegin();
+            
+            // Set up observer to detect when the Postcodes4u dropdown becomes visible
+            const dropdownObserver = new MutationObserver(function(mutations) {
+              mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'style' && 
+                    document.getElementById('dropdown').style.display !== 'none') {
+                  // When dropdown becomes visible, set up a change listener
+                  document.getElementById('dropdown').addEventListener('change', function() {
+                    // Collect the address data when an address is selected
+                    setTimeout(() => {
+                      const formattedAddress = {
+                        fullAddress: document.getElementById('address1').value + ', ' + 
+                                    document.getElementById('address2').value + ', ' + 
+                                    document.getElementById('town').value + ', ' + 
+                                    document.getElementById('county').value + ', ' + 
+                                    document.getElementById('postcode').value,
+                        buildingNumber: document.getElementById('company').value,
+                        street: document.getElementById('address1').value,
+                        town: document.getElementById('town').value,
+                        postcode: document.getElementById('postcode').value
+                      };
+                      
+                      // Store the address in a hidden field
+                      const addressDataField = document.getElementById(\`address-data-\${question.id}\`);
+                      if (addressDataField) {
+                        addressDataField.value = JSON.stringify(formattedAddress);
+                      }
+                      
+                      // Update the selected address display
+                      const selectedAddressElement = document.getElementById(\`${prefix}selected-address-\${question.id}\`);
+                      const searchElement = document.getElementById(\`${prefix}address-search-\${question.id}\`);
+                      const selectedAddressText = document.getElementById(\`${prefix}address-text-\${question.id}\`);
+                      
+                      if (selectedAddressElement && selectedAddressText) {
+                        selectedAddressText.textContent = formattedAddress.fullAddress;
+                        searchElement.style.display = 'none';
+                        selectedAddressElement.style.display = 'block';
+                      }
+                      
+                      // Save the address in the form state
+                      state.answers[question.id] = formattedAddress;
+                      
+                      // Update UI state
+                      calcVisibleQuestions();
+                      updateNextButtonState();
+                    }, 500); // Give time for Postcodes4u to fill in the fields
+                  });
+                }
+              });
+            });
+            
+            // Start observing the dropdown
+            dropdownObserver.observe(document.getElementById('dropdown'), { attributes: true });
+          } else {
+            showError(errorElement, 'Postcodes4u API not available');
+          }
+        } catch (error) {
+          console.error('Error with Postcodes4u:', error);
+          showError(errorElement, 'Error with postcode lookup');
+        } finally {
+          searchButton.disabled = false;
+          searchButton.innerHTML = originalButtonText;
+        }
+      } else {
+        // Use the custom API
+        try {
+          const apiKey = state.customApiKey;
+          
+          if (!apiKey || apiKey.trim() === '') {
+            showError(errorElement, 'WebBuildAPI key is not configured. Please add your API key in the form settings.');
+            searchButton.disabled = false;
+            searchButton.innerHTML = originalButtonText;
+            return;
+          }
+          
+          // Format the postcode: remove spaces and convert to uppercase
+          const formattedPostcode = postcode.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+          
+          console.log('Fetching address for postcode:', formattedPostcode);
+          console.log('Using API key:', apiKey ? 'API key provided (masked)' : 'No API key');
+          
+          const response = await fetch(\`https://webuildapi.com/post-code-lookup/api/postcodes/\${formattedPostcode}\`, {
+            headers: {
+              'Authorization': \`Bearer \${apiKey}\`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            if (response.status === 500) {
+              console.error('Server error from API:', response.status);
+              showError(errorElement, 'API server error (500). This usually indicates an invalid API key or authentication issue. Please check your WebBuildAPI key in the form settings.');
+            } else {
+              throw new Error(\`Failed to fetch address: \${response.status}\`);
+            }
+            return;
+          }
+          
+          const data = await response.json();
+          
+          if (!data.SearchEnd || !data.SearchEnd.Summaries || data.SearchEnd.Summaries.length === 0) {
+            showError(errorElement, 'No addresses found for this postcode');
+          } else {
+            showAddressResults(resultsElement, data.SearchEnd.Summaries, question.id);
+            hideError(errorElement);
+          }
+        } catch (error) {
+          console.error('Error looking up postcode:', error);
+          showError(errorElement, 'Error looking up postcode. Please try again.');
+        } finally {
+          searchButton.disabled = false;
+          searchButton.innerHTML = originalButtonText;
+        }
+      }
+    });
+    
+    // Set up change button handler
+    if (changeButton) {
+      changeButton.addEventListener('click', function() {
+        resetAddressSearch(question.id);
+      });
+    }
+  }
+  
+  function showError(element, message) {
+    if (!element) return;
+    element.textContent = message;
+    element.style.display = 'block';
+  }
+  
+  function hideError(element) {
+    if (!element) return;
+    element.style.display = 'none';
+  }
+  
+  function showAddressResults(element, addresses, questionId) {
+    if (!element) return;
+    
+    element.innerHTML = '';
+    
+    const header = document.createElement('div');
+    header.className = \`${prefix}address-results-header\`;
+    header.textContent = 'Select an address:';
+    element.appendChild(header);
+    
+    addresses.forEach(address => {
+      const addressItem = document.createElement('div');
+      addressItem.className = \`${prefix}address-result-item\`;
+      addressItem.textContent = address.Address;
+      addressItem.addEventListener('click', () => selectAddress(address, questionId));
+      element.appendChild(addressItem);
+    });
+    
+    element.style.display = 'block';
+  }
+  
+  function selectAddress(address, questionId) {
+    const resultsElement = document.getElementById(\`${prefix}results-\${questionId}\`);
+    const selectedAddressElement = document.getElementById(\`${prefix}selected-address-\${questionId}\`);
+    const selectedAddressText = document.getElementById(\`${prefix}address-text-\${questionId}\`);
+    const searchElement = document.getElementById(\`${prefix}address-search-\${questionId}\`);
+    
+    if (!selectedAddressElement || !selectedAddressText || !searchElement) return;
+    
+    // Update the selected address display
+    selectedAddressText.textContent = address.Address;
+    
+    // Hide the search and results, show the selected address
+    searchElement.style.display = 'none';
+    if (resultsElement) resultsElement.style.display = 'none';
+    selectedAddressElement.style.display = 'block';
+    
+    // Store the address in the form state
+    const formattedAddress = {
+      fullAddress: address.Address,
+      buildingNumber: address.BuildingNumber,
+      street: address.StreetAddress,
+      town: address.Town,
+      postcode: address.Postcode
+    };
+    
+    state.answers[questionId] = formattedAddress;
+    
+    // Recalculate visible questions based on new answer
+    calcVisibleQuestions();
+    
+    // Update next button state
+    updateNextButtonState();
+  }
+  
+  function resetAddressSearch(questionId) {
+    const resultsElement = document.getElementById(\`${prefix}results-\${questionId}\`);
+    const selectedAddressElement = document.getElementById(\`${prefix}selected-address-\${questionId}\`);
+    const searchElement = document.getElementById(\`${prefix}address-search-\${questionId}\`);
+    
+    if (!selectedAddressElement || !searchElement) return;
+    
+    // Get the current question info
+    const question = state.questions.find(q => q.id === questionId);
+    if (!question) return;
+    
+    // Hide the selected address, show the search
+    selectedAddressElement.style.display = 'none';
+    searchElement.style.display = 'block';
+    
+    // Clear any previous results or errors
+    if (resultsElement) resultsElement.style.display = 'none';
+    
+    if (question.postcodeApi === 'postcodes4u') {
+      // Clear the Postcodes4u fields
+      document.getElementById('postcode').value = '';
+      document.getElementById('company').value = '';
+      document.getElementById('address1').value = '';
+      document.getElementById('address2').value = '';
+      document.getElementById('town').value = '';
+      document.getElementById('county').value = '';
+      
+      // Hide the dropdown if visible
+      const dropdown = document.getElementById('dropdown');
+      if (dropdown) dropdown.style.display = 'none';
+    } else {
+      // Clear the custom API search
+      const postcodeInput = document.getElementById(\`${prefix}postcode-\${questionId}\`);
+      const errorElement = document.getElementById(\`${prefix}error-\${questionId}\`);
+      
+      if (postcodeInput) postcodeInput.value = '';
+      if (errorElement) errorElement.style.display = 'none';
+    }
+    
+    // Clear the answer
+    delete state.answers[questionId];
+    
+    // Recalculate visible questions
+    calcVisibleQuestions();
+    
+    // Update next button state
+    updateNextButtonState();
   }
 });`;
   };

@@ -25,7 +25,8 @@ import {
   Settings2Icon,
   TypeIcon,
   ListIcon,
-  TextIcon
+  TextIcon,
+  MapPinIcon
 } from "lucide-react";
 import QuestionEditor from "./QuestionEditor";
 import FormSettingsEditor from "./FormSettingsEditor";
@@ -47,12 +48,13 @@ export interface Question {
   id: string;
   text: string;
   description?: string;
-  type: "single_choice" | "multiple_choice" | "text_input";
+  type: "single_choice" | "multiple_choice" | "text_input" | "address";
   required: boolean;
   options?: Option[];
   conditions?: Condition[];
   conditionLogic?: "AND" | "OR";
   placeholder?: string;
+  postcodeApi?: "custom" | "postcodes4u";
 }
 
 export type FormSettings = {
@@ -60,6 +62,9 @@ export type FormSettings = {
   buttonColor: string;
   submitUrl: string;
   zapierWebhookUrl: string;
+  customApiKey?: string;
+  postcodes4uUsername?: string;
+  postcodes4uProductKey?: string;
 };
 
 export type FormState = {
@@ -78,16 +83,17 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"questions" | "settings">("questions");
 
-  const addQuestion = (type: "single_choice" | "multiple_choice" | "text_input") => {
+  const addQuestion = (type: "single_choice" | "multiple_choice" | "text_input" | "address") => {
     const newQuestion: Question = {
       id: Date.now().toString(),
       text: `Question ${formState.questions.length + 1}`,
       type,
       required: true,
-      options: type !== "text_input" ? [
+      options: type !== "text_input" && type !== "address" ? [
         { id: "opt-1", text: "Option 1" },
         { id: "opt-2", text: "Option 2" }
-      ] : undefined
+      ] : undefined,
+      postcodeApi: type === "address" ? "custom" : undefined
     };
 
     setFormState(prev => ({
@@ -218,33 +224,38 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
         
         <TabsContent value="questions" className="mt-6 animate-fade-in">
           <div className="flex flex-col gap-8">
-            <div className="grid grid-cols-3 gap-4">
-              <Button 
-                variant="outline" 
+            <div className="flex items-center gap-2 justify-center py-2">
+              <Button
+                variant="outline"
                 onClick={() => addQuestion("multiple_choice")}
-                className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-6 h-auto flex-col gap-2"
+                className="flex-1 sm:flex-initial justify-start text-left font-normal h-9"
               >
-                <TypeIcon className="w-5 h-5 mb-1" />
-                <span>Multiple Choice</span>
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Choose multiple options</span>
+                <ListIcon className="h-4 w-4 mr-2" />
+                Multiple Choice
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => addQuestion("single_choice")}
-                className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-6 h-auto flex-col gap-2"
+                className="flex-1 sm:flex-initial justify-start text-left font-normal h-9"
               >
-                <ListIcon className="w-5 h-5 mb-1" />
-                <span>Single Choice</span>
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Choose one option</span>
+                <TypeIcon className="h-4 w-4 mr-2" />
+                Single Choice
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => addQuestion("text_input")}
-                className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-6 h-auto flex-col gap-2"
+                className="flex-1 sm:flex-initial justify-start text-left font-normal h-9"
               >
-                <TextIcon className="w-5 h-5 mb-1" />
-                <span>Text Input</span>
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Free-form text answers</span>
+                <TextIcon className="h-4 w-4 mr-2" />
+                Text Input
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => addQuestion("address")}
+                className="flex-1 sm:flex-initial justify-start text-left font-normal h-9"
+              >
+                <MapPinIcon className="h-4 w-4 mr-2" />
+                Address
               </Button>
             </div>
 

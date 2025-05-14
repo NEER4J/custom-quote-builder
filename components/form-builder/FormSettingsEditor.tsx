@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Paintbrush, Globe, ExternalLink, Wand2 } from "lucide-react";
+import { Paintbrush, Globe, ExternalLink, Wand2, Key, MapPin } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 type FormSettingsEditorProps = {
@@ -122,6 +122,61 @@ const FormSettingsEditor = ({ settings, onSettingsChange }: FormSettingsEditorPr
               />
               <p className="text-xs text-muted-foreground">
                 Connect to Zapier to process form submissions
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-5">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <MapPin className="h-4 w-4" />
+            <h3 className="text-sm font-medium uppercase tracking-wide">Address API Settings</h3>
+          </div>
+          
+          <Separator />
+          
+          <div className="grid gap-5">
+            <div className="grid gap-2">
+              <Label htmlFor="customApiKey" className="text-sm font-medium">Custom API Key</Label>
+              <Input
+                id="customApiKey"
+                placeholder="Your WebBuildAPI key"
+                value={settings.customApiKey || ""}
+                onChange={(e) => handleChange(e, "customApiKey")}
+                className="bg-background/50"
+                type="password"
+              />
+              <p className="text-xs text-muted-foreground">
+                API key for WebBuildAPI postcode lookup service
+              </p>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="postcodes4uUsername" className="text-sm font-medium">Postcodes4u Username</Label>
+              <Input
+                id="postcodes4uUsername"
+                placeholder="Your Postcodes4u username"
+                value={settings.postcodes4uUsername || ""}
+                onChange={(e) => handleChange(e, "postcodes4uUsername")}
+                className="bg-background/50"
+              />
+              <p className="text-xs text-muted-foreground">
+                Username for Postcodes4u service
+              </p>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="postcodes4uProductKey" className="text-sm font-medium">Postcodes4u Product Key</Label>
+              <Input
+                id="postcodes4uProductKey"
+                placeholder="Your Postcodes4u product key"
+                value={settings.postcodes4uProductKey || ""}
+                onChange={(e) => handleChange(e, "postcodes4uProductKey")}
+                className="bg-background/50"
+                type="password"
+              />
+              <p className="text-xs text-muted-foreground">
+                Product key for Postcodes4u service
               </p>
             </div>
           </div>

@@ -22,7 +22,8 @@ import {
   Link,
   X,
   SaveIcon,
-  XIcon
+  XIcon,
+  MapPinIcon
 } from "lucide-react";
 import {
   Select,
@@ -71,7 +72,7 @@ const QuestionEditor = ({
   };
 
   const handleQuestionTypeChange = (type: string) => {
-    if (type === "single_choice" || type === "multiple_choice" || type === "text_input") {
+    if (type === "single_choice" || type === "multiple_choice" || type === "text_input" || type === "address") {
       const newOptions = question.options || [
         { id: crypto.randomUUID(), text: "Option 1" },
         { id: crypto.randomUUID(), text: "Option 2" }
@@ -80,7 +81,8 @@ const QuestionEditor = ({
       onChange({
         ...question,
         type: type as any,
-        options: type === "text_input" ? undefined : newOptions
+        options: type === "text_input" || type === "address" ? undefined : newOptions,
+        postcodeApi: type === "address" ? "custom" : undefined
       });
     }
   };
@@ -301,7 +303,7 @@ const QuestionEditor = ({
             <RadioGroup 
               defaultValue={question.type} 
               onValueChange={handleQuestionTypeChange}
-              className="grid grid-cols-3 gap-2"
+              className="grid grid-cols-4 gap-2"
             >
               <div className="bg-zinc-50 dark:bg-zinc-900 rounded-md p-2 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors relative">
                 <RadioGroupItem value="multiple_choice" id="multiple_choice" className="absolute top-2 right-2" />
@@ -320,9 +322,48 @@ const QuestionEditor = ({
                 <div className="mb-1 text-sm">Text Input</div>
                 <p className="text-xs text-muted-foreground">Free-form text</p>
               </div>
+
+              <div className="bg-zinc-50 dark:bg-zinc-900 rounded-md p-2 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors relative">
+                <RadioGroupItem value="address" id="address" className="absolute top-2 right-2" />
+                <div className="mb-1 text-sm">Address</div>
+                <p className="text-xs text-muted-foreground">Postcode lookup</p>
+              </div>
             </RadioGroup>
           </div>
           
+          {question.type === "address" && (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg ">
+              <h3 className="text-md font-medium mb-3">Postcode API Settings</h3>
+              
+              <RadioGroup 
+                defaultValue={question.postcodeApi || "custom"} 
+                onValueChange={(value) => {
+                  onChange({
+                    ...question,
+                    postcodeApi: value as "custom" | "postcodes4u"
+                  });
+                }}
+                className="grid grid-cols-2 gap-2"
+              >
+                <div className="bg-zinc-50 dark:bg-zinc-900 rounded-md p-2 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors relative">
+                  <RadioGroupItem value="custom" id="custom-api" className="absolute top-2 right-2" />
+                  <div className="mb-1 text-sm">Custom API</div>
+                  <p className="text-xs text-muted-foreground">Use WebBuildAPI</p>
+                </div>
+                
+                <div className="bg-zinc-50 dark:bg-zinc-900 rounded-md p-2 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors relative">
+                  <RadioGroupItem value="postcodes4u" id="postcodes4u" className="absolute top-2 right-2" />
+                  <div className="mb-1 text-sm">Postcodes4u</div>
+                  <p className="text-xs text-muted-foreground">Use Postcodes4u</p>
+                </div>
+              </RadioGroup>
+              
+              <p className="text-xs text-muted-foreground mt-3">
+                API keys can be configured in the form settings.
+              </p>
+            </div>
+          )}
+
           {(question.type === "multiple_choice" || question.type === "single_choice") && (
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg ">
               <div className="flex justify-between items-center mb-3">

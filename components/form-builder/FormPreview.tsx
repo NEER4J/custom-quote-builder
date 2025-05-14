@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { isUri } from 'valid-url';
-import { InfoIcon, ArrowRight, ArrowLeft, CheckCircle2, ChevronLeft, CheckIcon, RefreshCw } from "lucide-react";
+import { InfoIcon, ArrowRight, ArrowLeft, CheckCircle2, ChevronLeft, CheckIcon, RefreshCw, Loader2, Search, Map } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -32,7 +32,12 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
   const [activeQuestionIds, setActiveQuestionIds] = useState<string[]>([]);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [mobileInfoVisible, setMobileInfoVisible] = useState<string | null>(null);
+  const [loadingPostcode, setLoadingPostcode] = useState<boolean>(false);
+  const [postcodeError, setPostcodeError] = useState<string | null>(null);
+  const [addressResults, setAddressResults] = useState<any[] | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const infoButtonRef = useRef<HTMLDivElement>(null);
+  const [loadedPostcodes4u, setLoadedPostcodes4u] = useState<boolean>(false);
 
   // Add click outside listener to close info popup
   useEffect(() => {
@@ -254,7 +259,322 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
     );
   };
 
-  // Render the current question with responsive design
+  // Add these new functions to look up postcodes using both APIs
+
+  const lookupPostcodeWithCustomAPI = async (postcode: string) => {
+    setLoadingPostcode(true);
+    setPostcodeError(null);
+    setAddressResults(null);
+    
+    try {
+      const apiKey = formState.settings.customApiKey;
+      
+      if (!apiKey) {
+        setPostcodeError('API key is not configured. Please add it in Form Settings.');
+        setLoadingPostcode(false);
+        return;
+      }
+      
+      const response = await fetch(`https://webuildapi.com/post-code-lookup/api/postcodes/${postcode}`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch address');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.SearchEnd || !data.SearchEnd.Summaries || data.SearchEnd.Summaries.length === 0) {
+        setPostcodeError('No addresses found for this postcode');
+        setAddressResults([]);
+      } else {
+        setAddressResults(data.SearchEnd.Summaries);
+      }
+    } catch (error) {
+      console.error('Error looking up postcode:', error);
+      setPostcodeError('Error looking up postcode. Please try again.');
+    } finally {
+      setLoadingPostcode(false);
+    }
+  };
+
+  const selectAddress = (address: any) => {
+    if (!address) return;
+    
+    setSelectedAddress(address.Address);
+    
+    const currentQuestion = formState.questions[currentQuestionIndex!];
+    const formattedAddress = {
+      fullAddress: address.Address,
+      buildingNumber: address.BuildingNumber,
+      street: address.StreetAddress,
+      town: address.Town,
+      postcode: address.Postcode
+    };
+    
+    handleQuestionResponse(currentQuestion.id, formattedAddress);
+  };
+
+  const resetAddressSearch = () => {
+    setAddressResults(null);
+    setSelectedAddress(null);
+    setPostcodeError(null);
+    
+    // Clear the answer for the current question
+    const currentQuestion = formState.questions[currentQuestionIndex!];
+    const updatedAnswers = { ...answers };
+    delete updatedAnswers[currentQuestion.id];
+    setAnswers(updatedAnswers);
+  };
+
+  // Load Postcodes4u script if needed
+  useEffect(() => {
+    // Check if we need to load the Postcodes4u script
+    const hasAddressQuestion = formState.questions.some(
+      q => q.type === "address" && q.postcodeApi === "postcodes4u"
+    );
+    
+    if (hasAddressQuestion && !loadedPostcodes4u && typeof window !== 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'http://www.postcodes4u.co.uk/postcodes4u.js';
+      script.async = true;
+      script.onload = () => {
+        setLoadedPostcodes4u(true);
+        console.log('Postcodes4u script loaded');
+      };
+      document.body.appendChild(script);
+      
+      return () => {
+        // Clean up
+        if (document.body.contains(script)) {
+          document.body.removeChild(script);
+        }
+      };
+    }
+  }, [formState.questions, loadedPostcodes4u]);
+
+  // Render for address questions
+  const renderAddressQuestion = (currentQuestion: Question, currentAnswer: any) => {
+    if (currentQuestion.postcodeApi === "postcodes4u") {
+      return (
+        <div className="max-w-md mx-auto w-full space-y-4">
+          {!currentAnswer ? (
+            <div className="space-y-4">
+              {/* Postcodes4u API Implementation */}
+              <div id="postcodes4ukey" style={{ display: 'none' }}>
+                {formState.settings.postcodes4uProductKey || ''}
+              </div>
+              <div id="postcodes4uuser" style={{ display: 'none' }}>
+                {formState.settings.postcodes4uUsername || ''}
+              </div>
+              
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  placeholder="Enter postcode"
+                  className="flex-1 rounded-md border-gray-300"
+                  id="postcode"
+                />
+                <button
+                  onClick={() => {
+                    if (typeof (window as any).SearchBegin === 'function') {
+                      (window as any).SearchBegin();
+                      
+                      // Set up a mutation observer to watch for when the dropdown becomes visible
+                      const dropdownObserver = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                          const dropdown = document.getElementById('dropdown');
+                          if (dropdown && mutation.attributeName === 'style' && 
+                              dropdown.style.display !== 'none') {
+                            
+                            // Add event listener to the dropdown
+                            dropdown.addEventListener('change', () => {
+                              // Give a small delay for fields to be populated
+                              setTimeout(() => {
+                                const address1 = (document.getElementById('address1') as HTMLInputElement)?.value || '';
+                                const address2 = (document.getElementById('address2') as HTMLInputElement)?.value || '';
+                                const town = (document.getElementById('town') as HTMLInputElement)?.value || '';
+                                const county = (document.getElementById('county') as HTMLInputElement)?.value || '';
+                                const postcode = (document.getElementById('postcode') as HTMLInputElement)?.value || '';
+                                const company = (document.getElementById('company') as HTMLInputElement)?.value || '';
+                                
+                                const fullAddress = [address1, address2, town, county, postcode]
+                                  .filter(Boolean)
+                                  .join(', ');
+                                
+                                setSelectedAddress(fullAddress);
+                                
+                                const formattedAddress = {
+                                  fullAddress,
+                                  buildingNumber: company,
+                                  street: address1,
+                                  town: town,
+                                  postcode: postcode
+                                };
+                                
+                                handleQuestionResponse(currentQuestion.id, formattedAddress);
+                              }, 500);
+                            });
+                          }
+                        });
+                      });
+                      
+                      const dropdown = document.getElementById('dropdown');
+                      if (dropdown) {
+                        dropdownObserver.observe(dropdown, { attributes: true });
+                      }
+                    } else {
+                      setPostcodeError('Postcodes4u script not loaded. Please try again.');
+                    }
+                  }}
+                  className="gap-2 bg-black text-white rounded-md px-4 py-2"
+                >
+                  <Search className="h-4 w-4 inline-block mr-1" />
+                  Find
+                </button>
+              </div>
+              
+              {postcodeError && (
+                <div className="bg-destructive/10 text-destructive text-sm p-2 rounded">
+                  {postcodeError}
+                </div>
+              )}
+              
+              <select id="dropdown" style={{ display: 'none' }} onChange={() => {}}>
+                <option>Select an address:</option>
+              </select>
+              
+              <div style={{ display: 'none' }}>
+                <input type="text" id="company" placeholder="Company" />
+                <input type="text" id="address1" placeholder="Address Line 1" />
+                <input type="text" id="address2" placeholder="Address Line 2" />
+                <input type="text" id="town" placeholder="Town" />
+                <input type="text" id="county" placeholder="County" />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="bg-accent/10 p-3 rounded-md border border-accent/20">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium text-sm">Selected Address:</h4>
+                    <p className="text-sm mt-1">
+                      {typeof currentAnswer === 'object' ? currentAnswer.fullAddress : currentAnswer}
+                    </p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      resetAddressSearch();
+                      // Also reset Postcodes4u fields
+                      const fields = ['postcode', 'company', 'address1', 'address2', 'town', 'county'];
+                      fields.forEach(field => {
+                        const element = document.getElementById(field) as HTMLInputElement;
+                        if (element) element.value = '';
+                      });
+                      
+                      // Hide dropdown
+                      const dropdown = document.getElementById('dropdown');
+                      if (dropdown) dropdown.style.display = 'none';
+                    }}
+                    className="h-8 px-2 text-xs"
+                  >
+                    Change
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      // Custom API Implementation
+      return (
+        <div className="max-w-md mx-auto w-full space-y-4">
+          {!selectedAddress ? (
+            <div className="space-y-4">
+              <div className="flex space-x-2">
+                <Input
+                  type="text"
+                  placeholder="Enter postcode"
+                  className="flex-1"
+                  onChange={() => {
+                    setPostcodeError(null);
+                    setAddressResults(null);
+                  }}
+                  id="postcode-input"
+                />
+                <Button 
+                  onClick={() => {
+                    const postcode = (document.getElementById('postcode-input') as HTMLInputElement).value;
+                    if (!postcode) {
+                      setPostcodeError('Please enter a postcode');
+                      return;
+                    }
+                    lookupPostcodeWithCustomAPI(postcode);
+                  }}
+                  disabled={loadingPostcode}
+                  className="gap-2"
+                >
+                  {loadingPostcode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Find
+                </Button>
+              </div>
+              
+              {postcodeError && (
+                <div className="bg-destructive/10 text-destructive text-sm p-2 rounded">
+                  {postcodeError}
+                </div>
+              )}
+              
+              {addressResults && addressResults.length > 0 && (
+                <div className="border rounded-md divide-y">
+                  <div className="px-3 py-2 bg-muted/50 text-sm font-medium">
+                    Select an address:
+                  </div>
+                  {addressResults.map((address, index) => (
+                    <div 
+                      key={address.Id || index}
+                      onClick={() => selectAddress(address)}
+                      className="px-3 py-2 hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm"
+                    >
+                      {address.Address}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="bg-accent/10 p-3 rounded-md border border-accent/20">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium text-sm">Selected Address:</h4>
+                    <p className="text-sm mt-1">{selectedAddress}</p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={resetAddressSearch}
+                    className="h-8 px-2 text-xs"
+                  >
+                    Change
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+  };
+
+  // Modify the renderQuestion function to use the renderAddressQuestion function
   const renderQuestion = () => {
     if (currentQuestionIndex === null || !formState.questions[currentQuestionIndex]) {
       return (
@@ -417,6 +737,9 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
               />
             </div>
           )}
+
+          {/* Render for address questions */}
+          {currentQuestion.type === "address" && renderAddressQuestion(currentQuestion, currentAnswer)}
 
           {/* Next button for all question types except single choice (unless it's the last question) */}
           {(currentQuestion.type !== "single_choice" || 
