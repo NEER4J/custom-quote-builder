@@ -41,6 +41,7 @@ export interface Option {
 }
 
 export interface Condition {
+  id: string;
   questionId: string;
   values: string[]; // Array of option values that would make this condition true
 }
@@ -85,14 +86,17 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
   const [activeTab, setActiveTab] = useState<"questions" | "settings">("questions");
 
   const addQuestion = (type: "single_choice" | "multiple_choice" | "text_input" | "address" | "contact_form") => {
+    const questionNumber = formState.questions.length + 1;
+    const questionId = `q_${questionNumber}`;
+    
     const newQuestion: Question = {
-      id: Date.now().toString(),
-      text: `Question ${formState.questions.length + 1}`,
+      id: questionId,
+      text: `Question ${questionNumber}`,
       type,
       required: true,
       options: type !== "text_input" && type !== "address" && type !== "contact_form" ? [
-        { id: "opt-1", text: "Option 1" },
-        { id: "opt-2", text: "Option 2" }
+        { id: `${questionId}_opt_1`, text: "Option 1" },
+        { id: `${questionId}_opt_2`, text: "Option 2" }
       ] : undefined,
       postcodeApi: type === "address" ? "custom" : undefined
     };

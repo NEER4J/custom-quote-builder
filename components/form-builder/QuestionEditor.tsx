@@ -90,9 +90,10 @@ const QuestionEditor = ({
   const addOption = () => {
     if (!question.options) return;
     
+    const optionNumber = question.options.length + 1;
     const newOption: Option = {
-      id: crypto.randomUUID(),
-      text: `Option ${question.options.length + 1}`,
+      id: `${question.id}_opt_${optionNumber}`,
+      text: `Option ${optionNumber}`,
       icon: ""
     };
     
@@ -135,7 +136,9 @@ const QuestionEditor = ({
       ? [targetQuestion.options[0].id] 
       : [];
     
+    const conditionNumber = (question.conditions?.length || 0) + 1;
     const newCondition: Condition = {
+      id: `${question.id}_cond_${conditionNumber}`,
       questionId: targetQuestion.id,
       values: initialValue
     };

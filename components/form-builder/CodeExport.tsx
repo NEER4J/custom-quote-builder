@@ -26,8 +26,100 @@ const CodeExport = ({ formState }: CodeExportProps) => {
   const [activeTab, setActiveTab] = useState<"single" | "separate">("single");
   const [copied, setCopied] = useState<boolean>(false);
 
+  // Transform form state to use human-readable IDs instead of UUIDs
+  const transformFormState = (): FormState => {
+    const idMap = new Map<string, string>(); // Maps old IDs to new IDs
+    const questionIdToIndex = new Map<string, number>(); // Maps original question IDs to their index
+
+    // Create a deep copy of the form state
+    const newState = JSON.parse(JSON.stringify(formState)) as FormState;
+    
+    // First pass: assign new IDs to questions and map old to new
+    newState.questions.forEach((question, index) => {
+      const newQuestionId = `q_${index + 1}`;
+      idMap.set(question.id, newQuestionId);
+      questionIdToIndex.set(question.id, index);
+      question.id = newQuestionId;
+    });
+    
+    // Second pass: update options and conditions
+    newState.questions.forEach((question, qIndex) => {
+      // Update options
+      if (question.options) {
+        question.options.forEach((option, oIndex) => {
+          const newOptionId = `${question.id}_opt_${oIndex + 1}`;
+          idMap.set(option.id, newOptionId);
+          option.id = newOptionId;
+        });
+      }
+      
+      // Update conditions
+      if (question.conditions) {
+        const newConditions = question.conditions.map((condition, cIndex) => {
+          // Update condition ID
+          const newConditionId = `${question.id}_cond_${cIndex + 1}`;
+          
+          // Update questionId reference
+          let newQuestionId = condition.questionId;
+          if (idMap.has(condition.questionId)) {
+            newQuestionId = idMap.get(condition.questionId)!;
+          }
+          
+          // Update values array with new option IDs
+          const newValues = condition.values.map(value => {
+            return idMap.has(value) ? idMap.get(value)! : value;
+          });
+          
+          return {
+            ...condition,
+            id: newConditionId, 
+            questionId: newQuestionId,
+            values: newValues
+          };
+        });
+        
+        question.conditions = newConditions;
+      }
+    });
+    
+    // Third pass: handle any special condition references in the conditions array
+    const conditionQuestions = newState.questions.filter(q => q.conditions && q.conditions.length > 0);
+    
+    if (conditionQuestions.length > 0) {
+      const conditionsArray = conditionQuestions.map(q => ({
+        questionId: q.id,
+        conditions: q.conditions,
+        conditionLogic: q.conditionLogic || "AND"
+      }));
+      
+      // Ensure all references in the conditions array use the updated IDs
+      conditionsArray.forEach(item => {
+        if (item.conditions) {
+          item.conditions.forEach(condition => {
+            // Update questionId
+            if (idMap.has(condition.questionId)) {
+              condition.questionId = idMap.get(condition.questionId)!;
+            }
+            
+            // Update values
+            if (condition.values) {
+              condition.values = condition.values.map(value => 
+                idMap.has(value) ? idMap.get(value)! : value
+              );
+            }
+          });
+        }
+      });
+    }
+    
+    return newState;
+  };
+
   // Generate HTML code for the form
   const generateHTML = (): string => {
+    // Transform form state to use human-readable IDs
+    const transformedFormState = transformFormState();
+    
     // Create a custom prefix for all classes to prevent conflicts
     const prefix = "qform-";
     
@@ -36,19 +128,19 @@ const CodeExport = ({ formState }: CodeExportProps) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${formState.title}</title>
+  <title>${transformedFormState.title}</title>
   ${activeTab === "single" 
     ? `<style>
 ${generateCSS(prefix)}
     </style>` 
     : '<link rel="stylesheet" href="form-styles.css">'
   }
-  ${formState.questions.some(q => q.type === "address" && q.postcodeApi === "postcodes4u")
+  ${transformedFormState.questions.some(q => q.type === "address" && q.postcodeApi === "postcodes4u")
     ? '<script type="text/javascript" src="http://www.postcodes4u.co.uk/postcodes4u.js"></script>'
     : ''
   }
 </head>
-<body style="background-color: ${formState.settings.backgroundColor}">
+<body style="background-color: ${transformedFormState.settings.backgroundColor}">
   <div class="${prefix}container">
     <div class="${prefix}card">
       <!-- Progress bar -->
@@ -58,7 +150,7 @@ ${generateCSS(prefix)}
       
       <div class="${prefix}form-content" id="${prefix}form-content">
         <div id="${prefix}questions-container">
-          ${formState.questions.map((question, index) => `
+          ${transformedFormState.questions.map((question, index) => `
           <div class="${prefix}question" id="${prefix}question-${question.id}" ${index > 0 ? 'style="display: none;"' : ''}>
             <div class="${prefix}question-header">
               <h2 class="${prefix}question-text">${question.text}${question.required ? `<span class="${prefix}required">*</span>` : ''}</h2>
@@ -74,15 +166,15 @@ ${generateCSS(prefix)}
                     ${question.postcodeApi === 'postcodes4u' 
                       ? `<!-- Postcodes4u Integration -->
                          <div class="${prefix}address-search" id="${prefix}address-search-${question.id}">
-                           <div id='postcodes4ukey' style='display: none;'>${formState.settings.postcodes4uProductKey || ''}</div>
-                           <div id='postcodes4uuser' style='display: none;'>${formState.settings.postcodes4uUsername || ''}</div>
+                           <div id='postcodes4ukey' style='display: none;'>${transformedFormState.settings.postcodes4uProductKey || ''}</div>
+                           <div id='postcodes4uuser' style='display: none;'>${transformedFormState.settings.postcodes4uUsername || ''}</div>
 
                            <div class="${prefix}postcode-input-wrapper">
                              <div class="${prefix}postcode-search-container">
                                <input type="text" value="" id="postcode" placeholder="Enter postcode" class="${prefix}postcode-input" />
                                <button onclick="SearchBegin();return false;" 
                                  class="${prefix}search-button" id="${prefix}search-${question.id}" 
-                                 style="background-color: ${formState.settings.buttonColor}">
+                                 style="background-color: ${transformedFormState.settings.buttonColor}">
                                  <span class="${prefix}search-icon">🔍</span> Find
                                </button>
                              </div>
@@ -116,7 +208,7 @@ ${generateCSS(prefix)}
                            <div class="${prefix}postcode-input-wrapper">
                              <div class="${prefix}postcode-search-container">
                                <input type="text" class="${prefix}postcode-input" id="${prefix}postcode-${question.id}" placeholder="Enter postcode" />
-                               <button class="${prefix}search-button" id="${prefix}search-${question.id}" style="background-color: ${formState.settings.buttonColor}">
+                               <button class="${prefix}search-button" id="${prefix}search-${question.id}" style="background-color: ${transformedFormState.settings.buttonColor}">
                                  <span class="${prefix}search-icon">🔍</span> Find
                                </button>
                              </div>
@@ -202,7 +294,7 @@ ${generateCSS(prefix)}
                   </div>`
             }
             <div class="${prefix}next-button-container">
-              <button class="${prefix}next-button" id="${prefix}next-button-${question.id}" style="background-color: ${formState.settings.buttonColor}">
+              <button class="${prefix}next-button" id="${prefix}next-button-${question.id}" style="background-color: ${transformedFormState.settings.buttonColor}">
                 Next <span class="${prefix}next-icon">→</span>
               </button>
             </div>
@@ -213,7 +305,7 @@ ${generateCSS(prefix)}
               <div class="${prefix}thank-you-icon">✓</div>
               <h2>Thank you for your response!</h2>
               <p>Your answers have been recorded. We appreciate your time.</p>
-              <button class="${prefix}start-over-button" id="${prefix}start-over-button" style="background-color: ${formState.settings.buttonColor}">
+              <button class="${prefix}start-over-button" id="${prefix}start-over-button" style="background-color: ${transformedFormState.settings.buttonColor}">
                 <span class="${prefix}refresh-icon">↻</span> Start Over
               </button>
             </div>
@@ -231,7 +323,7 @@ ${generateCSS(prefix)}
 
   ${activeTab === "single" 
     ? `<script>
-${generateJS(prefix)}
+${generateJS(prefix, transformedFormState)}
     </script>` 
     : '<script src="form-script.js"></script>'
   }
@@ -241,6 +333,9 @@ ${generateJS(prefix)}
 
   // Generate CSS code
   const generateCSS = (prefix: string = "qform-"): string => {
+    // Use the transformed form state for CSS generation
+    const transformedState = transformFormState();
+    
     return `/* Quote Form Styles */
 * {
   box-sizing: border-box;
@@ -278,7 +373,7 @@ body{
 
 .${prefix}progress-bar-fill {
   height: 100%;
-  background-color: ${formState.settings.buttonColor};
+  background-color: ${transformedState.settings.buttonColor};
   width: 0;
   transition: width 0.5s ease-out;
 }
@@ -350,8 +445,8 @@ body{
 
 .${prefix}text-input:focus {
   outline: none;
-  border-color: ${formState.settings.buttonColor};
-  box-shadow: 0 0 0 2px rgba(${hexToRgb(formState.settings.buttonColor)}, 0.25);
+  border-color: ${transformedState.settings.buttonColor};
+  box-shadow: 0 0 0 2px rgba(${hexToRgb(transformedState.settings.buttonColor)}, 0.25);
 }
 
 .${prefix}options-container {
@@ -407,7 +502,7 @@ body{
 }
 
 .${prefix}option.selected {
-  border: 2px solid ${formState.settings.buttonColor};
+  border: 2px solid ${transformedState.settings.buttonColor};
 }
 
 .${prefix}option:not(.selected) {
@@ -531,7 +626,7 @@ body{
 .${prefix}checkbox-inner {
   width: 12px;
   height: 12px;
-  background-color: ${formState.settings.buttonColor};
+  background-color: ${transformedState.settings.buttonColor};
   border-radius: 2px;
   display: none;
 }
@@ -543,7 +638,7 @@ body{
 .${prefix}multiple-option.selected .${prefix}checkbox::after {
   content: "✓";
   position: absolute;
-  color: ${formState.settings.buttonColor};
+  color: ${transformedState.settings.buttonColor};
   font-size: 0.75rem;
 }
 
@@ -618,12 +713,12 @@ body{
 }
 
 .${prefix}back-button:hover {
-  background-color: ${formState.settings.buttonColor};
+  background-color: ${transformedState.settings.buttonColor};
   color: white;
 }
 
 .${prefix}next-button {
-  background-color: ${formState.settings.buttonColor} !important;
+  background-color: ${transformedState.settings.buttonColor} !important;
   color: white;
   border: none;
 }
@@ -645,8 +740,8 @@ body{
   width: 4rem;
   height: 4rem;
   border-radius: 50%;
-  background-color: rgba(${hexToRgb(formState.settings.buttonColor)}, 0.2);
-  color: ${formState.settings.buttonColor};
+  background-color: rgba(${hexToRgb(transformedState.settings.buttonColor)}, 0.2);
+  color: ${transformedState.settings.buttonColor};
   font-size: 2rem;
   margin-bottom: 1.5rem;
 }
@@ -668,7 +763,7 @@ body{
   align-items: center;
   gap: 0.25rem;
   padding: 0.5rem 1rem;
-  background-color: ${formState.settings.buttonColor};
+  background-color: ${transformedState.settings.buttonColor};
   color: white;
   border: none;
   border-radius: 0.375rem;
@@ -713,7 +808,7 @@ body{
 }
 
 .${prefix}search-button {
-  background-color: ${formState.settings.buttonColor};
+  background-color: ${transformedState.settings.buttonColor};
   border: none;
   color: white;
   padding: 0 16px;
@@ -832,7 +927,7 @@ body{
 .${prefix}change-address {
   background: none;
   border: none;
-  color: ${formState.settings.buttonColor};
+  color: ${transformedState.settings.buttonColor};
   font-size: 13px;
   cursor: pointer;
   padding: 6px 12px;
@@ -843,7 +938,7 @@ body{
 }
 
 .${prefix}change-address:hover {
-  background-color: rgba(${hexToRgb(formState.settings.buttonColor)}, 0.1);
+  background-color: rgba(${hexToRgb(transformedState.settings.buttonColor)}, 0.1);
 }
 
 .${prefix}loader {
@@ -910,8 +1005,8 @@ body{
 
 .${prefix}contact-input:focus {
   outline: none;
-  border-color: ${formState.settings.buttonColor};
-  box-shadow: 0 0 0 2px rgba(${hexToRgb(formState.settings.buttonColor)}, 0.25);
+  border-color: ${transformedState.settings.buttonColor};
+  box-shadow: 0 0 0 2px rgba(${hexToRgb(transformedState.settings.buttonColor)}, 0.25);
 }
 
 .${prefix}contact-form-checkbox {
@@ -924,7 +1019,7 @@ body{
 .${prefix}contact-checkbox {
   width: 1.25rem;
   height: 1.25rem;
-  accent-color: ${formState.settings.buttonColor};
+  accent-color: ${transformedState.settings.buttonColor};
 }
 
 .${prefix}contact-checkbox-label {
@@ -932,16 +1027,16 @@ body{
 }
 
 .${prefix}contact-link {
-  color: ${formState.settings.buttonColor};
+  color: ${transformedState.settings.buttonColor};
   text-decoration: underline;
 }
 `;
   };
 
   // Generate JavaScript code
-  const generateJS = (prefix: string = "qform-"): string => {
+  const generateJS = (prefix: string = "qform-", state: FormState = transformFormState()): string => {
     const conditionsJSON = JSON.stringify(
-      formState.questions
+      state.questions
         .filter(q => q.conditions && q.conditions.length > 0)
         .map(q => ({
           questionId: q.id,
@@ -956,14 +1051,24 @@ document.addEventListener('DOMContentLoaded', function() {
   const state = {
     currentQuestionIndex: 0,
     answers: {},
-    questions: ${JSON.stringify(formState.questions)},
+    questions: ${JSON.stringify(state.questions)},
     conditions: ${conditionsJSON},
-    submitUrl: "${formState.settings.submitUrl}",
-    zapierWebhookUrl: "${formState.settings.zapierWebhookUrl}",
-    customApiKey: "${formState.settings.customApiKey || ''}",
-    postcodes4uUsername: "${formState.settings.postcodes4uUsername || ''}",
-    postcodes4uProductKey: "${formState.settings.postcodes4uProductKey || ''}"
+    submitUrl: "${state.settings.submitUrl}",
+    zapierWebhookUrl: "${state.settings.zapierWebhookUrl}",
+    customApiKey: "${state.settings.customApiKey || ''}",
+    postcodes4uUsername: "${state.settings.postcodes4uUsername || ''}",
+    postcodes4uProductKey: "${state.settings.postcodes4uProductKey || ''}"
   };
+
+  // Try to load answers from session storage
+  try {
+    const savedAnswers = sessionStorage.getItem('qform_answers');
+    if (savedAnswers) {
+      state.answers = JSON.parse(savedAnswers);
+    }
+  } catch (e) {
+    console.error('Failed to load answers from session storage:', e);
+  }
 
   // DOM elements
   const questionsContainer = document.getElementById('${prefix}questions-container');
@@ -978,6 +1083,74 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize form
   initForm();
   
+  // Helper function to save answers to session storage
+  function saveAnswersToSession() {
+    try {
+      sessionStorage.setItem('qform_answers', JSON.stringify(state.answers));
+    } catch (e) {
+      console.error('Failed to save answers to session storage:', e);
+    }
+  }
+  
+  // Function to restore saved answers in the UI
+  function restoreSavedAnswers() {
+    // Restore single choice selections
+    for (const questionId in state.answers) {
+      const answer = state.answers[questionId];
+      
+      // For single choice questions
+      if (typeof answer === 'string') {
+        updateOptionSelection(questionId, answer, true);
+      } 
+      // For multiple choice questions
+      else if (Array.isArray(answer)) {
+        updateMultipleChoiceSelection(questionId);
+      }
+      // For text inputs
+      else if (document.getElementById(\`${prefix}input-\${questionId}\`)) {
+        document.getElementById(\`${prefix}input-\${questionId}\`).value = answer;
+      }
+      // For address data (object with fullAddress property)
+      else if (answer && typeof answer === 'object' && answer.fullAddress) {
+        // Restore address UI state
+        const selectedAddressElement = document.getElementById(\`${prefix}selected-address-\${questionId}\`);
+        const searchElement = document.getElementById(\`${prefix}address-search-\${questionId}\`);
+        const selectedAddressText = document.getElementById(\`${prefix}address-text-\${questionId}\`);
+        
+        if (selectedAddressElement && selectedAddressText && searchElement) {
+          selectedAddressText.textContent = answer.fullAddress;
+          searchElement.style.display = 'none';
+          selectedAddressElement.style.display = 'block';
+        }
+      }
+      // For contact form data
+      else if (answer && typeof answer === 'object') {
+        // Check if this is contact form data by looking for firstName property
+        if (answer.firstName !== undefined) {
+          // Restore contact form field values
+          if (document.getElementById(\`${prefix}firstName-\${questionId}\`)) {
+            document.getElementById(\`${prefix}firstName-\${questionId}\`).value = answer.firstName || '';
+          }
+          if (document.getElementById(\`${prefix}lastName-\${questionId}\`)) {
+            document.getElementById(\`${prefix}lastName-\${questionId}\`).value = answer.lastName || '';
+          }
+          if (document.getElementById(\`${prefix}phone-\${questionId}\`)) {
+            document.getElementById(\`${prefix}phone-\${questionId}\`).value = answer.phone || '';
+          }
+          if (document.getElementById(\`${prefix}email-\${questionId}\`)) {
+            document.getElementById(\`${prefix}email-\${questionId}\`).value = answer.email || '';
+          }
+          if (document.getElementById(\`${prefix}terms-\${questionId}\`)) {
+            document.getElementById(\`${prefix}terms-\${questionId}\`).checked = !!answer.termsAccepted;
+          }
+        }
+      }
+    }
+    
+    // Recalculate visible questions based on loaded answers
+    calcVisibleQuestions();
+  }
+  
   function initForm() {
     // Set up single choice option click handlers
     document.querySelectorAll('.${prefix}single-option').forEach(option => {
@@ -987,6 +1160,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Set answer
         state.answers[questionId] = optionId;
+        
+        // Save to session storage
+        saveAnswersToSession();
         
         // Update UI
         updateOptionSelection(questionId, optionId, true);
@@ -1021,6 +1197,9 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
           answers.splice(index, 1);
         }
+        
+        // Save to session storage
+        saveAnswersToSession();
         
         // Update UI
         updateMultipleChoiceSelection(questionId);
@@ -1077,12 +1256,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const questionId = this.id.replace('${prefix}input-', '');
         state.answers[questionId] = this.value;
         
+        // Save to session storage
+        saveAnswersToSession();
+        
         // Recalculate visible questions whenever text input changes
         calcVisibleQuestions();
         
         updateNextButtonState();
       });
     });
+    
+    // Restore saved answers from session storage
+    restoreSavedAnswers();
     
     // Set up back button
     backButton.addEventListener('click', goToPreviousQuestion);
@@ -1321,64 +1506,71 @@ document.addEventListener('DOMContentLoaded', function() {
     state.currentQuestionIndex = null;
     updateView();
     
+    // Transform answers to include question text and answer text instead of just IDs
+    const transformedAnswers = {};
+    
+    Object.keys(state.answers).forEach(questionId => {
+      const question = state.questions.find(q => q.id === questionId);
+      if (!question) return;
+      
+      const questionKey = question.text;
+      
+      if (question.type === 'text_input') {
+        // For text inputs, just use the value directly
+        transformedAnswers[questionKey] = state.answers[questionId];
+      } else if (question.type === 'address') {
+        // For address questions, use static field names instead of question text
+        const addressData = state.answers[questionId];
+        if (addressData && typeof addressData === 'object') {
+          transformedAnswers['useraddress'] = addressData.fullAddress;
+          transformedAnswers['useraddress_building'] = addressData.buildingNumber;
+          transformedAnswers['useraddress_street'] = addressData.street;
+          transformedAnswers['useraddress_town'] = addressData.town;
+          transformedAnswers['useraddress_postcode'] = addressData.postcode;
+          
+          // Also add the question text as key for reference
+          // transformedAnswers[\`question_\${questionId}\`] = question.text;
+        }
+      } else if (question.type === 'multiple_choice') {
+        // For multiple choice, map the array of IDs to array of text values
+        const answerIds = state.answers[questionId];
+        if (Array.isArray(answerIds)) {
+          const answerTexts = answerIds.map(id => {
+            const option = question.options?.find(opt => opt.id === id);
+            return option ? option.text : id;
+          });
+          transformedAnswers[questionKey] = answerTexts.join(', ');
+        }
+      } else if (question.type === 'contact_form') {
+        // For contact form, add individual fields
+        const contactData = state.answers[questionId];
+        if (contactData && typeof contactData === 'object') {
+          transformedAnswers['user_first_name'] = contactData.firstName || '';
+          transformedAnswers['user_last_name'] = contactData.lastName || '';
+          transformedAnswers['user_phone'] = contactData.phone || '';
+          transformedAnswers['user_email'] = contactData.email || '';
+          transformedAnswers['terms_accepted'] = contactData.termsAccepted ? 'Yes' : 'No';
+          
+          // Also include the full question text
+          transformedAnswers[questionKey] = 'Contact Information Provided';
+        }
+      } else {
+        // For single choice, look up the text of the selected option
+        const answerId = state.answers[questionId];
+        const option = question.options?.find(opt => opt.id === answerId);
+        transformedAnswers[questionKey] = option ? option.text : answerId;
+      }
+    });
+    
+    // Save transformed answers to session storage for developer access
+    try {
+      sessionStorage.setItem('qform_transformed_answers', JSON.stringify(transformedAnswers));
+    } catch (e) {
+      console.error('Failed to save transformed answers to session storage:', e);
+    }
+    
     // Submit data to Zapier if webhook URL provided
     if (state.zapierWebhookUrl) {
-      // Transform answers to include question text and answer text instead of just IDs
-      const transformedAnswers = {};
-      
-      Object.keys(state.answers).forEach(questionId => {
-        const question = state.questions.find(q => q.id === questionId);
-        if (!question) return;
-        
-        const questionKey = question.text;
-        
-        if (question.type === 'text_input') {
-          // For text inputs, just use the value directly
-          transformedAnswers[questionKey] = state.answers[questionId];
-        } else if (question.type === 'address') {
-          // For address questions, use static field names instead of question text
-          const addressData = state.answers[questionId];
-          if (addressData && typeof addressData === 'object') {
-            transformedAnswers['useraddress'] = addressData.fullAddress;
-            transformedAnswers['useraddress_building'] = addressData.buildingNumber;
-            transformedAnswers['useraddress_street'] = addressData.street;
-            transformedAnswers['useraddress_town'] = addressData.town;
-            transformedAnswers['useraddress_postcode'] = addressData.postcode;
-            
-            // Also add the question text as key for reference
-            // transformedAnswers[\`question_\${questionId}\`] = question.text;
-          }
-        } else if (question.type === 'multiple_choice') {
-          // For multiple choice, map the array of IDs to array of text values
-          const answerIds = state.answers[questionId];
-          if (Array.isArray(answerIds)) {
-            const answerTexts = answerIds.map(id => {
-              const option = question.options?.find(opt => opt.id === id);
-              return option ? option.text : id;
-            });
-            transformedAnswers[questionKey] = answerTexts.join(', ');
-          }
-        } else if (question.type === 'contact_form') {
-          // For contact form, add individual fields
-          const contactData = state.answers[questionId];
-          if (contactData && typeof contactData === 'object') {
-            transformedAnswers['user_first_name'] = contactData.firstName || '';
-            transformedAnswers['user_last_name'] = contactData.lastName || '';
-            transformedAnswers['user_phone'] = contactData.phone || '';
-            transformedAnswers['user_email'] = contactData.email || '';
-            transformedAnswers['terms_accepted'] = contactData.termsAccepted ? 'Yes' : 'No';
-            
-            // Also include the full question text
-            transformedAnswers[questionKey] = 'Contact Information Provided';
-          }
-        } else {
-          // For single choice, look up the text of the selected option
-          const answerId = state.answers[questionId];
-          const option = question.options?.find(opt => opt.id === answerId);
-          transformedAnswers[questionKey] = option ? option.text : answerId;
-        }
-      });
-      
       fetch(state.zapierWebhookUrl, {
         method: 'POST',
         headers: {
@@ -1400,6 +1592,13 @@ document.addEventListener('DOMContentLoaded', function() {
   function resetForm() {
     state.currentQuestionIndex = 0;
     state.answers = {};
+    
+    // Clear session storage
+    try {
+      sessionStorage.removeItem('qform_answers');
+    } catch (e) {
+      console.error('Failed to clear session storage:', e);
+    }
     
     // Reset selections
     document.querySelectorAll('.${prefix}option').forEach(opt => {
@@ -1463,6 +1662,9 @@ document.addEventListener('DOMContentLoaded', function() {
               
               // Store in form state
               state.answers[question.id] = formattedAddress;
+              
+              // Save to session storage
+              saveAnswersToSession();
               
               // Update navigation
               calcVisibleQuestions();
@@ -1536,6 +1738,9 @@ document.addEventListener('DOMContentLoaded', function() {
                       
                       // Save the address in the form state
                       state.answers[question.id] = formattedAddress;
+                      
+                      // Save to session storage
+                      saveAnswersToSession();
                       
                       // Update UI state
                       calcVisibleQuestions();
@@ -1655,7 +1860,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultsElement = document.getElementById(\`${prefix}results-\${questionId}\`);
     const selectedAddressElement = document.getElementById(\`${prefix}selected-address-\${questionId}\`);
     const selectedAddressText = document.getElementById(\`${prefix}address-text-\${questionId}\`);
-    const searchElement = document.getElementById(\`${prefix}address-search-\${questionId}\`);
+    const searchElement = document.getElementById(\`${prefix}address-search-\${question.id}\`);
     
     if (!selectedAddressElement || !selectedAddressText || !searchElement) return;
     
@@ -1790,6 +1995,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     state.answers[questionId][field] = value;
+    
+    // Save to session storage
+    saveAnswersToSession();
+    
     updateNextButtonState();
   }
 });`;
@@ -1832,6 +2041,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Handle different downloads based on file type
   const handleDownload = (type: 'html' | 'css' | 'js' | 'all') => {
+    // Use the transformed form state for all downloads
+    const transformedState = transformFormState();
+    
     switch (type) {
       case 'html':
         downloadFile(generateHTML(), 'quote-form.html');
@@ -1840,13 +2052,13 @@ document.addEventListener('DOMContentLoaded', function() {
         downloadFile(generateCSS(), 'form-styles.css');
         break;
       case 'js':
-        downloadFile(generateJS(), 'form-script.js');
+        downloadFile(generateJS('qform-', transformedState), 'form-script.js');
         break;
       case 'all':
         const zip = new JSZip();
         zip.file('quote-form.html', generateHTML());
         zip.file('form-styles.css', generateCSS());
-        zip.file('form-script.js', generateJS());
+        zip.file('form-script.js', generateJS('qform-', transformedState));
         zip.generateAsync({ type: 'blob' }).then((blob: Blob) => {
           const element = document.createElement('a');
           element.href = URL.createObjectURL(blob);
