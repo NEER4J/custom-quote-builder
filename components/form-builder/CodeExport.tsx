@@ -135,6 +135,35 @@ ${generateCSS(prefix)}
                       </div>
                     </div>
                   </div>`
+              : question.type === 'contact_form'
+                ? `<div class="${prefix}contact-form-container">
+                    <div class="${prefix}contact-form-grid">
+                      <div class="${prefix}contact-form-row">
+                        <div class="${prefix}contact-form-field">
+                          <label for="${prefix}firstName-${question.id}" class="${prefix}contact-label">First Name</label>
+                          <input type="text" id="${prefix}firstName-${question.id}" class="${prefix}contact-input" placeholder="Enter first name" ${question.required ? 'required' : ''} />
+                        </div>
+                        <div class="${prefix}contact-form-field">
+                          <label for="${prefix}lastName-${question.id}" class="${prefix}contact-label">Last Name</label>
+                          <input type="text" id="${prefix}lastName-${question.id}" class="${prefix}contact-input" placeholder="Enter last name" ${question.required ? 'required' : ''} />
+                        </div>
+                      </div>
+                      <div class="${prefix}contact-form-field">
+                        <label for="${prefix}phone-${question.id}" class="${prefix}contact-label">Phone Number</label>
+                        <input type="tel" id="${prefix}phone-${question.id}" class="${prefix}contact-input" placeholder="Enter phone number" ${question.required ? 'required' : ''} />
+                      </div>
+                      <div class="${prefix}contact-form-field">
+                        <label for="${prefix}email-${question.id}" class="${prefix}contact-label">Email Address</label>
+                        <input type="email" id="${prefix}email-${question.id}" class="${prefix}contact-input" placeholder="Enter email address" ${question.required ? 'required' : ''} />
+                      </div>
+                      <div class="${prefix}contact-form-checkbox">
+                        <input type="checkbox" id="${prefix}terms-${question.id}" class="${prefix}contact-checkbox" ${question.required ? 'required' : ''} />
+                        <label for="${prefix}terms-${question.id}" class="${prefix}contact-checkbox-label">
+                          I agree to the <a href="#" class="${prefix}contact-link">Terms and Conditions</a> and <a href="#" class="${prefix}contact-link">Privacy Policy</a>
+                        </label>
+                      </div>
+                    </div>
+                  </div>`
               : question.type === 'single_choice'
                 ? `<div class="${prefix}options-container">
                     <div class="${prefix}options-grid">
@@ -500,9 +529,11 @@ body{
 }
 
 .${prefix}checkbox-inner {
+  width: 12px;
+  height: 12px;
+  background-color: ${formState.settings.buttonColor};
+  border-radius: 2px;
   display: none;
-  width: 0.625rem;
-  height: 0.625rem;
 }
 
 .${prefix}multiple-option.selected .${prefix}checkbox-inner {
@@ -831,6 +862,79 @@ body{
     transform: rotate(360deg);
   }
 }
+
+/* Contact Form Styles */
+.${prefix}contact-form-container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.${prefix}contact-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.${prefix}contact-form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .${prefix}contact-form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.${prefix}contact-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.${prefix}contact-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.${prefix}contact-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.${prefix}contact-input:focus {
+  outline: none;
+  border-color: ${formState.settings.buttonColor};
+  box-shadow: 0 0 0 2px rgba(${hexToRgb(formState.settings.buttonColor)}, 0.25);
+}
+
+.${prefix}contact-form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.${prefix}contact-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: ${formState.settings.buttonColor};
+}
+
+.${prefix}contact-checkbox-label {
+  font-size: 0.875rem;
+}
+
+.${prefix}contact-link {
+  color: ${formState.settings.buttonColor};
+  text-decoration: underline;
+}
 `;
   };
 
@@ -990,6 +1094,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show first question
     updateView();
 
+    // Set up contact form input handlers
+    state.questions.forEach(question => {
+      if (question.type === 'contact_form') {
+        setupContactFormHandlers(question);
+      }
+    });
+
     // Set up address question handlers
     state.questions.forEach(question => {
       if (question.type === 'address') {
@@ -1115,6 +1226,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (answer === undefined) return false;
     if (Array.isArray(answer)) return answer.length > 0;
     if (typeof answer === 'string') return answer.trim() !== '';
+    
+    const question = state.questions.find(q => q.id === questionId);
+    
+    // Special handling for contact form
+    if (question && question.type === 'contact_form' && typeof answer === 'object') {
+      return (
+        answer.firstName?.trim() !== "" && 
+        answer.lastName?.trim() !== "" && 
+        answer.phone?.trim() !== "" && 
+        answer.email?.trim() !== "" && 
+        answer.termsAccepted === true
+      );
+    }
+    
     if (typeof answer === 'object') return answer !== null;
     return answer !== '';
   }
@@ -1233,8 +1358,21 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             transformedAnswers[questionKey] = answerTexts.join(', ');
           }
-        } else if (question.type === 'single_choice') {
-          // For single choice, map the ID to the text value
+        } else if (question.type === 'contact_form') {
+          // For contact form, add individual fields
+          const contactData = state.answers[questionId];
+          if (contactData && typeof contactData === 'object') {
+            transformedAnswers['user_first_name'] = contactData.firstName || '';
+            transformedAnswers['user_last_name'] = contactData.lastName || '';
+            transformedAnswers['user_phone'] = contactData.phone || '';
+            transformedAnswers['user_email'] = contactData.email || '';
+            transformedAnswers['terms_accepted'] = contactData.termsAccepted ? 'Yes' : 'No';
+            
+            // Also include the full question text
+            transformedAnswers[questionKey] = 'Contact Information Provided';
+          }
+        } else {
+          // For single choice, look up the text of the selected option
           const answerId = state.answers[questionId];
           const option = question.options?.find(opt => opt.id === answerId);
           transformedAnswers[questionKey] = option ? option.text : answerId;
@@ -1580,7 +1718,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       // Clear the custom API search
       const postcodeInput = document.getElementById(\`${prefix}postcode-\${questionId}\`);
-      const errorElement = document.getElementById(\`${prefix}error-\${questionId}\`);
+      const errorElement = document.getElementById(\`${prefix}error-\${question.id}\`);
       
       if (postcodeInput) postcodeInput.value = '';
       if (errorElement) errorElement.style.display = 'none';
@@ -1593,6 +1731,65 @@ document.addEventListener('DOMContentLoaded', function() {
     calcVisibleQuestions();
     
     // Update next button state
+    updateNextButtonState();
+  }
+
+  function setupContactFormHandlers(question) {
+    // Initialize contact form data object
+    if (!state.answers[question.id]) {
+      state.answers[question.id] = {
+        firstName: '',
+        lastName: '',
+        phone: '',
+        email: '',
+        termsAccepted: false
+      };
+    }
+    
+    // Set up event handlers for each field
+    const firstNameInput = document.getElementById(\`${prefix}firstName-\${question.id}\`);
+    const lastNameInput = document.getElementById(\`${prefix}lastName-\${question.id}\`);
+    const phoneInput = document.getElementById(\`${prefix}phone-\${question.id}\`);
+    const emailInput = document.getElementById(\`${prefix}email-\${question.id}\`);
+    const termsCheckbox = document.getElementById(\`${prefix}terms-\${question.id}\`);
+    
+    if (firstNameInput) {
+      firstNameInput.addEventListener('input', function() {
+        updateContactField(question.id, 'firstName', this.value);
+      });
+    }
+    
+    if (lastNameInput) {
+      lastNameInput.addEventListener('input', function() {
+        updateContactField(question.id, 'lastName', this.value);
+      });
+    }
+    
+    if (phoneInput) {
+      phoneInput.addEventListener('input', function() {
+        updateContactField(question.id, 'phone', this.value);
+      });
+    }
+    
+    if (emailInput) {
+      emailInput.addEventListener('input', function() {
+        updateContactField(question.id, 'email', this.value);
+      });
+    }
+    
+    if (termsCheckbox) {
+      termsCheckbox.addEventListener('change', function() {
+        updateContactField(question.id, 'termsAccepted', this.checked);
+      });
+    }
+  }
+  
+  function updateContactField(questionId, field, value) {
+    if (!state.answers[questionId]) {
+      state.answers[questionId] = {};
+    }
+    
+    state.answers[questionId][field] = value;
     updateNextButtonState();
   }
 });`;

@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { isUri } from 'valid-url';
 import { InfoIcon, ArrowRight, ArrowLeft, CheckCircle2, ChevronLeft, CheckIcon, RefreshCw, Loader2, Search, Map } from "lucide-react";
 import {
@@ -213,6 +215,17 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
       
       if (currentQuestion.type === "text_input" && typeof answer === "string") {
         return answer.trim() !== "";
+      }
+      
+      // Validate contact form fields
+      if (currentQuestion.type === "contact_form" && typeof answer === "object") {
+        return (
+          answer.firstName?.trim() !== "" && 
+          answer.lastName?.trim() !== "" && 
+          answer.phone?.trim() !== "" && 
+          answer.email?.trim() !== "" && 
+          answer.termsAccepted === true
+        );
       }
       
       return !!answer;
@@ -574,6 +587,97 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
     }
   };
 
+  // Add a function to render contact form
+  const renderContactForm = (currentQuestion: Question, currentAnswer: any) => {
+    const contactAnswer = currentAnswer || {
+      firstName: '',
+      lastName: '',
+      phone: '',
+      email: '',
+      termsAccepted: false
+    };
+
+    const handleContactChange = (field: string, value: string | boolean) => {
+      const updatedAnswer = {
+        ...contactAnswer,
+        [field]: value
+      };
+      handleQuestionResponse(currentQuestion.id, updatedAnswer);
+    };
+
+    return (
+      <div className="max-w-2xl mx-auto w-full space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="firstName">First Name</Label>
+            <Input
+              id="firstName"
+              value={contactAnswer.firstName || ''}
+              onChange={(e) => handleContactChange('firstName', e.target.value)}
+              placeholder="Enter first name"
+              className="w-full"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lastName">Last Name</Label>
+            <Input
+              id="lastName"
+              value={contactAnswer.lastName || ''}
+              onChange={(e) => handleContactChange('lastName', e.target.value)}
+              placeholder="Enter last name"
+              className="w-full"
+            />
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="phone">Phone Number</Label>
+          <Input
+            id="phone"
+            type="tel"
+            value={contactAnswer.phone || ''}
+            onChange={(e) => handleContactChange('phone', e.target.value)}
+            placeholder="Enter phone number"
+            className="w-full"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="email">Email Address</Label>
+          <Input
+            id="email"
+            type="email"
+            value={contactAnswer.email || ''}
+            onChange={(e) => handleContactChange('email', e.target.value)}
+            placeholder="Enter email address"
+            className="w-full"
+          />
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="terms" 
+            checked={contactAnswer.termsAccepted || false}
+            onCheckedChange={(checked) => handleContactChange('termsAccepted', !!checked)}
+          />
+          <Label 
+            htmlFor="terms" 
+            className="text-sm font-normal"
+          >
+            I agree to the{' '}
+            <a href="#" className="text-accent underline hover:text-accent/80">
+              Terms and Conditions
+            </a>{' '}
+            and{' '}
+            <a href="#" className="text-accent underline hover:text-accent/80">
+              Privacy Policy
+            </a>
+          </Label>
+        </div>
+      </div>
+    );
+  };
+
   // Modify the renderQuestion function to use the renderAddressQuestion function
   const renderQuestion = () => {
     if (currentQuestionIndex === null || !formState.questions[currentQuestionIndex]) {
@@ -740,6 +844,9 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
 
           {/* Render for address questions */}
           {currentQuestion.type === "address" && renderAddressQuestion(currentQuestion, currentAnswer)}
+          
+          {/* Render for contact form questions */}
+          {currentQuestion.type === "contact_form" && renderContactForm(currentQuestion, currentAnswer)}
 
           {/* Next button for all question types except single choice (unless it's the last question) */}
           {(currentQuestion.type !== "single_choice" || 

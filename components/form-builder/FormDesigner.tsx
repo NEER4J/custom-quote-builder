@@ -26,7 +26,8 @@ import {
   TypeIcon,
   ListIcon,
   TextIcon,
-  MapPinIcon
+  MapPinIcon,
+  UserIcon
 } from "lucide-react";
 import QuestionEditor from "./QuestionEditor";
 import FormSettingsEditor from "./FormSettingsEditor";
@@ -48,7 +49,7 @@ export interface Question {
   id: string;
   text: string;
   description?: string;
-  type: "single_choice" | "multiple_choice" | "text_input" | "address";
+  type: "single_choice" | "multiple_choice" | "text_input" | "address" | "contact_form";
   required: boolean;
   options?: Option[];
   conditions?: Condition[];
@@ -83,13 +84,13 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"questions" | "settings">("questions");
 
-  const addQuestion = (type: "single_choice" | "multiple_choice" | "text_input" | "address") => {
+  const addQuestion = (type: "single_choice" | "multiple_choice" | "text_input" | "address" | "contact_form") => {
     const newQuestion: Question = {
       id: Date.now().toString(),
       text: `Question ${formState.questions.length + 1}`,
       type,
       required: true,
-      options: type !== "text_input" && type !== "address" ? [
+      options: type !== "text_input" && type !== "address" && type !== "contact_form" ? [
         { id: "opt-1", text: "Option 1" },
         { id: "opt-2", text: "Option 2" }
       ] : undefined,
@@ -256,6 +257,14 @@ const FormDesigner = ({ formState, setFormState }: FormDesignerProps) => {
               >
                 <MapPinIcon className="h-4 w-4 mr-2" />
                 Address
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => addQuestion("contact_form")}
+                className="flex-1 sm:flex-initial justify-start text-left font-normal h-9"
+              >
+                <UserIcon className="h-4 w-4 mr-2" />
+                Contact Form
               </Button>
             </div>
 

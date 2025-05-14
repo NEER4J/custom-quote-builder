@@ -72,7 +72,7 @@ const QuestionEditor = ({
   };
 
   const handleQuestionTypeChange = (type: string) => {
-    if (type === "single_choice" || type === "multiple_choice" || type === "text_input" || type === "address") {
+    if (type === "single_choice" || type === "multiple_choice" || type === "text_input" || type === "address" || type === "contact_form") {
       const newOptions = question.options || [
         { id: crypto.randomUUID(), text: "Option 1" },
         { id: crypto.randomUUID(), text: "Option 2" }
@@ -81,7 +81,7 @@ const QuestionEditor = ({
       onChange({
         ...question,
         type: type as any,
-        options: type === "text_input" || type === "address" ? undefined : newOptions,
+        options: type === "text_input" || type === "address" || type === "contact_form" ? undefined : newOptions,
         postcodeApi: type === "address" ? "custom" : undefined
       });
     }
@@ -303,7 +303,7 @@ const QuestionEditor = ({
             <RadioGroup 
               defaultValue={question.type} 
               onValueChange={handleQuestionTypeChange}
-              className="grid grid-cols-4 gap-2"
+              className="grid grid-cols-5 gap-2"
             >
               <div className="bg-zinc-50 dark:bg-zinc-900 rounded-md p-2 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors relative">
                 <RadioGroupItem value="multiple_choice" id="multiple_choice" className="absolute top-2 right-2" />
@@ -327,6 +327,12 @@ const QuestionEditor = ({
                 <RadioGroupItem value="address" id="address" className="absolute top-2 right-2" />
                 <div className="mb-1 text-sm">Address</div>
                 <p className="text-xs text-muted-foreground">Postcode lookup</p>
+              </div>
+              
+              <div className="bg-zinc-50 dark:bg-zinc-900 rounded-md p-2 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors relative">
+                <RadioGroupItem value="contact_form" id="contact_form" className="absolute top-2 right-2" />
+                <div className="mb-1 text-sm">Contact Form</div>
+                <p className="text-xs text-muted-foreground">Contact details</p>
               </div>
             </RadioGroup>
           </div>
