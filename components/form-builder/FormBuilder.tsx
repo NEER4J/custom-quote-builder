@@ -109,6 +109,21 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
     }
   }, [formId]);
 
+  // Add event listener to share questions with FormSettingsEditor
+  useEffect(() => {
+    const handleRequestQuestions = () => {
+      window.dispatchEvent(new CustomEvent('getQuestionsForSuccessPages', {
+        detail: { questions: formState.questions }
+      }));
+    };
+    
+    window.addEventListener('requestQuestionsForSuccessPages', handleRequestQuestions);
+    
+    return () => {
+      window.removeEventListener('requestQuestionsForSuccessPages', handleRequestQuestions);
+    };
+  }, [formState.questions]);
+
   // Regular save handler that updates both form metadata and the latest version
   const handleSave = async () => {
     setLoading(true);
@@ -593,6 +608,9 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
         }
       }}>
         <DialogContent className="bg-gray-100 max-w-full w-[98vw] h-[96vh] p-4" style={{borderRadius: '0px'}}>
+          <DialogHeader>
+            <DialogTitle className="sr-only">Form Preview</DialogTitle>
+          </DialogHeader>
           <div className="h-full">
             <FormPreview formState={formState} />
           </div>

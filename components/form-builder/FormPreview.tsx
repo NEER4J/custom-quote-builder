@@ -55,6 +55,103 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
     };
   }, []);
 
+  // Success page redirection effect
+  useEffect(() => {
+    if (formSubmitted && formState.settings.successPages && formState.settings.successPages.length > 0) {
+      console.log("Checking success page conditions with answers:", answers);
+      
+      // Find the first matching success page based on conditions
+      const matchingSuccessPage = formState.settings.successPages.find(page => {
+        if (!page.conditions || page.conditions.length === 0) return false;
+        
+        console.log(`Evaluating conditions for success page: ${page.name}`);
+        
+        // Evaluate each condition
+        const conditionResults = page.conditions.map(condition => {
+          const sourceQuestion = formState.questions.find(q => q.id === condition.questionId);
+          const answer = answers[condition.questionId];
+          
+          console.log(`Condition for question "${sourceQuestion?.text || condition.questionId}":`);
+          console.log(`- Answer:`, answer);
+          console.log(`- Expected values:`, condition.values);
+          
+          if (answer === undefined) {
+            console.log(`- Result: false (no answer provided)`);
+            return false;
+          }
+          
+          // Convert answer to array for consistent handling
+          const answerArray = Array.isArray(answer) ? answer : [answer];
+          
+          // For object answers (like from contact form), check if any property matches
+          if (typeof answer === 'object' && !Array.isArray(answer)) {
+            const result = Object.values(answer).some(value => 
+              condition.values.includes(String(value))
+            );
+            console.log(`- Result (object comparison): ${result}`);
+            return result;
+          }
+          
+          // For single or multiple choice questions
+          if (sourceQuestion?.type === 'single_choice' || sourceQuestion?.type === 'multiple_choice') {
+            // Check if any of the condition values match any of the selected answers
+            const result = condition.values.some(val => answerArray.includes(val));
+            console.log(`- Result (choice comparison): ${result}`);
+            return result;
+          }
+          
+          // For text inputs, check exact match
+          if (sourceQuestion?.type === 'text_input') {
+            const result = condition.values.includes(String(answer));
+            console.log(`- Result (text comparison): ${result}`);
+            return result;
+          }
+          
+          return false;
+        });
+        
+        // Apply the appropriate logic (AND/OR)
+        const finalResult = page.conditionLogic === "AND" 
+          ? conditionResults.every(Boolean) 
+          : conditionResults.some(Boolean);
+          
+        console.log(`Final result for "${page.name}": ${finalResult} (${page.conditionLogic} logic)`);
+        return finalResult;
+      });
+      
+      // Don't redirect, just create a message about where it would redirect
+      let redirectMessage = "";
+      
+      if (matchingSuccessPage && matchingSuccessPage.url) {
+        console.log(`Would redirect to success page: ${matchingSuccessPage.name} (${matchingSuccessPage.url})`);
+        redirectMessage = `In the exported form, users will be redirected to: <strong>${matchingSuccessPage.name}</strong> (${matchingSuccessPage.url})`;
+      } else if (formState.settings.submitUrl) {
+        console.log(`No matching success page found, would use default URL: ${formState.settings.submitUrl}`);
+        redirectMessage = `In the exported form, users will be redirected to: <strong>${formState.settings.submitUrl}</strong>`;
+      } else {
+        redirectMessage = "No redirect URL configured for the form";
+      }
+      
+      // Add the redirect message to the thank you screen
+      const thankYouScreenElement = document.querySelector(".text-center.space-y-4");
+      if (thankYouScreenElement && redirectMessage) {
+        // Check if we already added a redirect message
+        let infoElement = document.querySelector(".redirect-info-message");
+        
+        if (!infoElement) {
+          // Create a new element for the redirect message
+          infoElement = document.createElement("div");
+          infoElement.className = "redirect-info-message mt-4 p-3 text-sm bg-muted rounded-md border-l-4 border-accent text-muted-foreground";
+          infoElement.innerHTML = redirectMessage;
+          thankYouScreenElement.appendChild(infoElement);
+        } else {
+          // Update the existing message
+          infoElement.innerHTML = redirectMessage;
+        }
+      }
+    }
+  }, [formSubmitted, formState.settings.successPages, formState.settings.submitUrl, answers, formState.questions]);
+
   // Function to check if a string is an image URL
   const isImageUrl = (url: string): boolean => {
     if (!url) return false;
@@ -145,6 +242,8 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
 
   // Handle user's response to a question
   const handleQuestionResponse = (questionId: string, value: any, moveNext = false) => {
+    console.log(`Question ${questionId} answered:`, value);
+    
     setAnswers(prev => ({
       ...prev,
       [questionId]: value
@@ -174,6 +273,8 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
       }
     } else {
       // This is the last question, submit the form
+      console.log("Form submitted with answers:", JSON.stringify(answers, null, 2));
+      console.log("Available success pages:", formState.settings.successPages);
       setFormSubmitted(true);
     }
   };
@@ -235,7 +336,7 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
   };
 
   // Render the thank you screen after form submission
-  const renderThankYouScreen = () => {
+  const renderThankYouScreen = () => {    
     return (
       <div className="text-center space-y-4 py-10">
         <div className="inline-flex justify-center items-center w-16 h-16 rounded-full bg-accent/20 text-accent mb-4">
@@ -249,8 +350,8 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
           <Button 
             variant="outline" 
             onClick={() => {
-    setAnswers({});
-    setFormSubmitted(false);
+              setAnswers({});
+              setFormSubmitted(false);
               
               // Return to first visible question
               const visibleQuestionIds = formState.questions

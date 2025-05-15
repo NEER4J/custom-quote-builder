@@ -34,6 +34,21 @@ const CodeExport = ({ formState }: CodeExportProps) => {
     // Create a deep copy of the form state
     const newState = JSON.parse(JSON.stringify(formState)) as FormState;
     
+    // Make sure success pages are included in the transformed state
+    if (formState.settings.successPages) {
+      console.log(`Including ${formState.settings.successPages.length} success pages in exported form`);
+      
+      // If success pages exist in the original but not in the copy, initialize it
+      if (!newState.settings.successPages) {
+        newState.settings.successPages = [];
+      }
+      
+      // Ensure success pages are properly copied
+      if (newState.settings.successPages.length === 0 && formState.settings.successPages.length > 0) {
+        newState.settings.successPages = JSON.parse(JSON.stringify(formState.settings.successPages));
+      }
+    }
+    
     // First pass: assign new IDs to questions and map old to new
     newState.questions.forEach((question, index) => {
       const newQuestionId = `q_${index + 1}`;
@@ -109,6 +124,33 @@ const CodeExport = ({ formState }: CodeExportProps) => {
             }
           });
         }
+      });
+    }
+    
+    // Update success page conditions to use new IDs
+    if (newState.settings.successPages && newState.settings.successPages.length > 0) {
+      console.log(`Updating IDs for ${newState.settings.successPages.length} success pages`);
+      
+      newState.settings.successPages.forEach(page => {
+        if (!page.conditions) return;
+        
+        page.conditions.forEach(condition => {
+          // Update questionId reference
+          if (idMap.has(condition.questionId)) {
+            const newQuestionId = idMap.get(condition.questionId);
+            console.log(`Updating success page condition: ${condition.questionId} -> ${newQuestionId}`);
+            condition.questionId = newQuestionId!;
+          }
+          
+          // Update values array with new option IDs
+          if (condition.values) {
+            const oldValues = [...condition.values];
+            condition.values = condition.values.map(value => 
+              idMap.has(value) ? idMap.get(value)! : value
+            );
+            console.log(`Updating success page condition values: ${JSON.stringify(oldValues)} -> ${JSON.stringify(condition.values)}`);
+          }
+        });
       });
     }
     
@@ -1045,6 +1087,9 @@ body{
         }))
     );
     
+    // Add success pages to the state as well
+    const successPagesJSON = JSON.stringify(state.settings.successPages || []);
+    
     return `// Quote Form Script
 document.addEventListener('DOMContentLoaded', function() {
   // Form state
@@ -1057,7 +1102,8 @@ document.addEventListener('DOMContentLoaded', function() {
     zapierWebhookUrl: "${state.settings.zapierWebhookUrl}",
     customApiKey: "${state.settings.customApiKey || ''}",
     postcodes4uUsername: "${state.settings.postcodes4uUsername || ''}",
-    postcodes4uProductKey: "${state.settings.postcodes4uProductKey || ''}"
+    postcodes4uProductKey: "${state.settings.postcodes4uProductKey || ''}",
+    successPages: ${successPagesJSON}
   };
 
   // Try to load answers from session storage
@@ -1581,10 +1627,72 @@ document.addEventListener('DOMContentLoaded', function() {
       }).catch(err => console.error('Error submitting form:', err));
     }
     
+    // Check if we should redirect to a conditional success page
+    let redirectUrl = state.submitUrl; // Default URL
+    
+    if (state.successPages && state.successPages.length > 0) {
+      console.log('Evaluating success page conditions...');
+      
+      // Find the first matching success page
+      const matchingPage = state.successPages.find(page => {
+        if (!page.conditions || page.conditions.length === 0) return false;
+        
+        console.log(\`Checking conditions for success page: \${page.name}\`);
+        
+        // Check all conditions for this page
+        const conditionResults = page.conditions.map(condition => {
+          const answer = state.answers[condition.questionId];
+          console.log(\`Condition for question \${condition.questionId}:\`);
+          console.log(\`- Answer: \${JSON.stringify(answer)}\`);
+          console.log(\`- Expected values: \${JSON.stringify(condition.values)}\`);
+          
+          if (answer === undefined) {
+            console.log('- No answer provided');
+            return false;
+          }
+          
+          // For single choice or multiple choice questions
+          if (Array.isArray(answer)) {
+            // Multiple choice answer
+            const result = condition.values.some(val => answer.includes(val));
+            console.log(\`- Result (multiple choice): \${result}\`);
+            return result;
+          } else if (typeof answer === 'object' && !Array.isArray(answer)) {
+            // For object answers (contact form, address), check if any property matches
+            const objValues = Object.values(answer).map(String);
+            const result = condition.values.some(val => objValues.includes(val));
+            console.log(\`- Result (object): \${result}\`);
+            return result;
+          } else {
+            // For string answers (single choice, text input)
+            const result = condition.values.includes(String(answer));
+            console.log(\`- Result (simple value): \${result}\`);
+            return result;
+          }
+        });
+        
+        // Apply the appropriate logic
+        const finalResult = page.conditionLogic === 'AND' 
+          ? conditionResults.every(Boolean) 
+          : conditionResults.some(Boolean);
+          
+        console.log(\`- Final result for \${page.name}: \${finalResult} (\${page.conditionLogic} logic)\`);
+        return finalResult;
+      });
+      
+      // If we found a matching page, use its URL
+      if (matchingPage && matchingPage.url) {
+        console.log(\`Redirecting to success page: \${matchingPage.name} (\${matchingPage.url})\`);
+        redirectUrl = matchingPage.url;
+      } else {
+        console.log(\`No matching success page found, using default URL: \${redirectUrl}\`);
+      }
+    }
+    
     // Redirect if URL provided
-    if (state.submitUrl) {
+    if (redirectUrl) {
       setTimeout(() => {
-        window.location.href = state.submitUrl;
+        window.location.href = redirectUrl;
       }, 2000);
     }
   }
@@ -1860,7 +1968,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultsElement = document.getElementById(\`${prefix}results-\${questionId}\`);
     const selectedAddressElement = document.getElementById(\`${prefix}selected-address-\${questionId}\`);
     const selectedAddressText = document.getElementById(\`${prefix}address-text-\${questionId}\`);
-    const searchElement = document.getElementById(\`${prefix}address-search-\${question.id}\`);
+    const searchElement = document.getElementById(\`${prefix}address-search-\${questionId}\`);
     
     if (!selectedAddressElement || !selectedAddressText || !searchElement) return;
     

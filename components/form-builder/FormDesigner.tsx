@@ -46,6 +46,14 @@ export interface Condition {
   values: string[]; // Array of option values that would make this condition true
 }
 
+export interface SuccessPage {
+  id: string;
+  name: string;
+  url: string;
+  conditions: Condition[];
+  conditionLogic: "AND" | "OR";
+}
+
 export interface Question {
   id: string;
   text: string;
@@ -67,6 +75,7 @@ export type FormSettings = {
   customApiKey?: string;
   postcodes4uUsername?: string;
   postcodes4uProductKey?: string;
+  successPages?: SuccessPage[];
 };
 
 export type FormState = {
