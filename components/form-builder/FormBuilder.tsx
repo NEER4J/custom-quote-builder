@@ -619,7 +619,7 @@ const FormBuilder = ({ userId }: FormBuilderProps) => {
       
       {/* Edit Question Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-0">
+        <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto p-3">
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="text-lg">
               {editingQuestionIndex !== null && editingQuestionIndex < formState.questions.length

@@ -415,8 +415,8 @@ const QuestionEditor = ({
                     key={option.id} 
                     className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md p-2  hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
                   >
-                    <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-5">
+                    <div className="flex gap-5">
+                      <div className="w-full">
                         <Label className="text-xs mb-1 block text-muted-foreground">Option Text</Label>
                         <Input
                           value={option.text}
@@ -425,18 +425,9 @@ const QuestionEditor = ({
                           className="border-zinc-300 dark:border-zinc-700 focus-visible:ring-black text-xs h-7"
                         />
                       </div>
+                  
                       
-                      <div className="col-span-5">
-                        <Label className="text-xs mb-1 block text-muted-foreground">Option Description</Label>
-                        <Input
-                          value={option.description || ""}
-                          onChange={(e) => updateOption(index, "description", e.target.value)}
-                          placeholder="Brief description (optional)"
-                          className="border-zinc-300 dark:border-zinc-700 focus-visible:ring-black text-xs h-7"
-                        />
-                      </div>
-                      
-                      <div className="col-span-5">
+                      <div className="w-full">
                         <Label className="text-xs mb-1 block text-muted-foreground">
                           {optionType === "image" ? "Image URL" : "Icon (optional)"}
                         </Label>
@@ -453,7 +444,7 @@ const QuestionEditor = ({
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0"
+                                  className="bg-zinc-50 dark:bg-zinc-900 absolute right-1 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0"
                                 >
                                   <ImageIcon className="h-3 w-3" />
                                 </Button>
@@ -473,6 +464,17 @@ const QuestionEditor = ({
                         </div>
                       </div>
                       
+                          
+                      <div className="w-full">
+                        <Label className="text-xs mb-1 block text-muted-foreground">Option Description</Label>
+                        <Input
+                          value={option.description || ""}
+                          onChange={(e) => updateOption(index, "description", e.target.value)}
+                          placeholder="Brief description (optional)"
+                          className="border-zinc-300 dark:border-zinc-700 focus-visible:ring-black text-xs h-7"
+                        />
+                      </div>
+
                       <div className="col-span-2 flex justify-end items-center">
                         <Button
                           size="sm"
@@ -592,7 +594,7 @@ const QuestionEditor = ({
                                           id={`option-${option.id}-${index}`}
                                           checked={condition.values.includes(option.id)} 
                                           onCheckedChange={(checked) => handleConditionValueChange(index, option.id, !!checked)} 
-                                          className="border-zinc-400 h-3 w-3"
+                                          className="border-zinc-400 h-4 w-4"
                                         />
                                         <Label htmlFor={`option-${option.id}-${index}`} className="text-xs">
                                           {option.text}

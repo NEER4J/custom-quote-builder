@@ -119,35 +119,49 @@ const FormPreview = ({ formState }: FormPreviewProps) => {
         return finalResult;
       });
       
-      // Don't redirect, just create a message about where it would redirect
-      let redirectMessage = "";
-      
+      // Redirect to the matching success page or default if none match
       if (matchingSuccessPage && matchingSuccessPage.url) {
-        console.log(`Would redirect to success page: ${matchingSuccessPage.name} (${matchingSuccessPage.url})`);
-        redirectMessage = `In the exported form, users will be redirected to: <strong>${matchingSuccessPage.name}</strong> (${matchingSuccessPage.url})`;
-      } else if (formState.settings.submitUrl) {
-        console.log(`No matching success page found, would use default URL: ${formState.settings.submitUrl}`);
-        redirectMessage = `In the exported form, users will be redirected to: <strong>${formState.settings.submitUrl}</strong>`;
-      } else {
-        redirectMessage = "No redirect URL configured for the form";
-      }
-      
-      // Add the redirect message to the thank you screen
-      const thankYouScreenElement = document.querySelector(".text-center.space-y-4");
-      if (thankYouScreenElement && redirectMessage) {
-        // Check if we already added a redirect message
-        let infoElement = document.querySelector(".redirect-info-message");
+        console.log(`Redirecting to success page: ${matchingSuccessPage.name} (${matchingSuccessPage.url})`);
+        // Use a timeout to give a moment to show the thank you screen
+        const redirectTimer = setTimeout(() => {
+          try {
+            // Check if we're in the preview or an exported form
+            const isFullUrl = matchingSuccessPage.url.startsWith('http://') || 
+                             matchingSuccessPage.url.startsWith('https://');
+            
+            if (isFullUrl) {
+              window.location.href = matchingSuccessPage.url;
+            } else {
+              // For exported forms or relative URLs, try to handle relative paths
+              window.location.href = matchingSuccessPage.url;
+            }
+          } catch (error) {
+            console.error("Error during redirect:", error);
+          }
+        }, 1500);
         
-        if (!infoElement) {
-          // Create a new element for the redirect message
-          infoElement = document.createElement("div");
-          infoElement.className = "redirect-info-message mt-4 p-3 text-sm bg-muted rounded-md border-l-4 border-accent text-muted-foreground";
-          infoElement.innerHTML = redirectMessage;
-          thankYouScreenElement.appendChild(infoElement);
-        } else {
-          // Update the existing message
-          infoElement.innerHTML = redirectMessage;
-        }
+        return () => clearTimeout(redirectTimer);
+      } else if (formState.settings.submitUrl) {
+        console.log(`No matching success page found, using default URL: ${formState.settings.submitUrl}`);
+        // If no conditional redirect matched but there's a default URL
+        const redirectTimer = setTimeout(() => {
+          try {
+            const isFullUrl = formState.settings.submitUrl.startsWith('http://') || 
+                             formState.settings.submitUrl.startsWith('https://');
+                             
+            if (isFullUrl) {
+              window.location.href = formState.settings.submitUrl;
+            } else {
+              window.location.href = formState.settings.submitUrl;
+            }
+          } catch (error) {
+            console.error("Error during default redirect:", error);
+          }
+        }, 1500);
+        
+        return () => clearTimeout(redirectTimer);
+      } else {
+        console.log("No redirect URL configured");
       }
     }
   }, [formSubmitted, formState.settings.successPages, formState.settings.submitUrl, answers, formState.questions]);

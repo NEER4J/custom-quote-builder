@@ -1629,6 +1629,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Check if we should redirect to a conditional success page
     let redirectUrl = state.submitUrl; // Default URL
+    let redirectInfo = ""; // Information about redirection
     
     if (state.successPages && state.successPages.length > 0) {
       console.log('Evaluating success page conditions...');
@@ -1684,13 +1685,42 @@ document.addEventListener('DOMContentLoaded', function() {
       if (matchingPage && matchingPage.url) {
         console.log(\`Redirecting to success page: \${matchingPage.name} (\${matchingPage.url})\`);
         redirectUrl = matchingPage.url;
+        redirectInfo = \`In the exported form, users will be redirected to: <strong>\${matchingPage.name}</strong> (\${matchingPage.url})\`;
       } else {
         console.log(\`No matching success page found, using default URL: \${redirectUrl}\`);
+        redirectInfo = redirectUrl ? \`In the exported form, users will be redirected to: <strong>\${redirectUrl}</strong>\` : '';
       }
     }
     
-    // Redirect if URL provided
-    if (redirectUrl) {
+    // Show redirect information in the thank you screen for the preview
+    const thankYouScreen = document.getElementById('${prefix}thank-you-screen');
+    if (thankYouScreen && redirectInfo) {
+      const redirectInfoElement = document.createElement('p');
+      redirectInfoElement.className = '${prefix}redirect-info';
+      redirectInfoElement.style.marginTop = '1rem';
+      redirectInfoElement.style.fontSize = '0.875rem';
+      redirectInfoElement.style.color = '#6c757d';
+      redirectInfoElement.style.padding = '0.75rem';
+      redirectInfoElement.style.backgroundColor = '#f8f9fa';
+      redirectInfoElement.style.borderRadius = '0.25rem';
+      redirectInfoElement.style.borderLeft = '3px solid #007bff';
+      redirectInfoElement.innerHTML = redirectInfo;
+      
+      const thankYouContent = thankYouScreen.querySelector('.${prefix}thank-you-content');
+      if (thankYouContent) {
+        // Check if we already added this info
+        const existingInfo = thankYouContent.querySelector('.${prefix}redirect-info');
+        if (existingInfo) {
+          existingInfo.innerHTML = redirectInfo;
+        } else {
+          thankYouContent.appendChild(redirectInfoElement);
+        }
+      }
+    }
+    
+    // Note: In the preview, we don't actually redirect, just show the info
+    // The real redirection will only happen in the exported form
+    if (window.location.href.indexOf('preview=true') === -1 && redirectUrl) {
       setTimeout(() => {
         window.location.href = redirectUrl;
       }, 2000);
